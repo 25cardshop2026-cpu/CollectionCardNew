@@ -39,6 +39,8 @@ export const metadata: Metadata = {
 };
 
 const NAV = [
+  { href: "/", label: "หน้าแรก" },
+  { href: "/browse", label: "เลือกเกม" },
   { href: "/g/one-piece", label: "One Piece" },
   { href: "/g/pokemon", label: "Pokémon" },
   { href: "/movers", label: "ราคาขยับแรง" },
@@ -67,7 +69,7 @@ export default function RootLayout({
                 </span>
               </Link>
 
-              <nav className="hidden items-center gap-7 text-[14px] text-ink-2 sm:flex">
+              <nav className="hidden items-center gap-6 text-[14px] text-ink-2 lg:flex">
                 {NAV.map((item) => (
                   <Link
                     key={item.href}
@@ -79,12 +81,17 @@ export default function RootLayout({
                 ))}
               </nav>
 
-              <Link
-                href="/admin"
-                className="ml-auto rounded-full border border-line-strong px-3.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 transition-colors hover:border-gold hover:text-gold"
-              >
-                แดชบอร์ด
-              </Link>
+              <div className="ml-auto flex items-center gap-2.5">
+                <Link
+                  href="/admin"
+                  className="hidden rounded-full border border-line-strong px-3.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 transition-colors hover:border-gold hover:text-gold sm:inline-block"
+                >
+                  แดชบอร์ด
+                </Link>
+                <Link href="/browse" className="btn btn-primary btn-sm">
+                  เริ่มใช้งาน
+                </Link>
+              </div>
             </div>
             <div className="gold-rule h-px" aria-hidden="true" />
           </header>

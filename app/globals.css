@@ -249,6 +249,77 @@ body > * {
   background: linear-gradient(90deg, transparent, var(--gold-line), transparent);
 }
 
+/* ---------------- ปุ่ม ---------------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 9999px;
+  padding: 1rem 2.25rem;
+  font-weight: 600;
+  font-size: 1rem;
+  line-height: 1;
+  white-space: nowrap;
+  transition:
+    transform 0.2s cubic-bezier(0.2, 0.7, 0.3, 1),
+    box-shadow 0.2s cubic-bezier(0.2, 0.7, 0.3, 1),
+    background-color 0.2s;
+}
+
+.btn-primary {
+  background: var(--gold);
+  color: var(--on-gold);
+  box-shadow: 0 10px 34px -8px var(--gold);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 42px -8px var(--gold);
+}
+
+.btn-ghost {
+  border: 1px solid var(--line-strong);
+  color: var(--ink);
+}
+
+.btn-ghost:hover {
+  border-color: var(--gold-line);
+  color: var(--gold);
+  transform: translateY(-2px);
+}
+
+.btn-sm {
+  padding: 0.625rem 1.25rem;
+  font-size: 0.875rem;
+}
+
+/* การ์ดสามใบเรียงซ้อนกันแบบคลี่พัด ใช้โชว์ของจริงบนหน้าแลนดิ้ง */
+.fan > * {
+  transition: transform 0.45s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+.fan > *:nth-child(1) {
+  transform: rotate(-9deg) translateY(14px);
+}
+
+.fan > *:nth-child(3) {
+  transform: rotate(9deg) translateY(14px);
+}
+
+.fan:hover > *:nth-child(1) {
+  transform: rotate(-13deg) translateY(4px) translateX(-8px);
+}
+
+.fan:hover > *:nth-child(2) {
+  transform: translateY(-10px);
+}
+
+.fan:hover > *:nth-child(3) {
+  transform: rotate(13deg) translateY(4px) translateX(8px);
+}
+
 /* ---------------- ส่วนประกอบที่ใช้ซ้ำ ---------------- */
 
 .vitrine {
@@ -280,7 +351,9 @@ body > * {
     transition-duration: 0.01ms !important;
   }
 
-  .group:hover .card-face {
+  .group:hover .card-face,
+  .btn:hover,
+  .fan:hover > * {
     transform: none;
   }
 }
