@@ -11,6 +11,8 @@ export const metadata: Metadata = {
     "การ์ดสะสม One Piece และ Pokémon ที่ราคาขึ้นและลงมากที่สุดในรอบ 7 วัน",
 };
 
+export const dynamic = "force-dynamic";
+
 export default function MoversPage() {
   const movers = listMovers(24);
 

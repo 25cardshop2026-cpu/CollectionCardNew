@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { IS_DEMO_MODE } from "@/lib/repo";
+import { IS_DEMO_MODE, canPersist } from "@/lib/repo";
+
+export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "แดชบอร์ด",
@@ -17,9 +19,12 @@ export default function AdminLayout({
         <h1 className="font-mono text-[12px] uppercase tracking-[0.14em] text-accent">
           แดชบอร์ด
         </h1>
-        <nav className="flex gap-4 text-[13.5px] text-ink-2">
+        <nav className="flex flex-wrap gap-4 text-[13.5px] text-ink-2">
           <Link href="/admin" className="hover:text-ink">
             ภาพรวม
+          </Link>
+          <Link href="/admin/cards" className="hover:text-ink">
+            จัดการการ์ด
           </Link>
           <Link href="/admin/prices" className="hover:text-ink">
             อัปเดตราคา
@@ -32,10 +37,20 @@ export default function AdminLayout({
 
       {IS_DEMO_MODE && (
         <div className="rounded-lg border border-down/40 bg-down/5 px-4 py-3 text-[13px] text-ink-2">
-          <b className="text-ink">โหมดสาธิต — ยังไม่ได้ต่อฐานข้อมูล</b> ราคาที่แก้ไขจะเก็บใน
-          หน่วยความจำของเซิร์ฟเวอร์เท่านั้น และหายเมื่อ instance ถูกรีไซเคิล
-          ตั้งค่า <code className="font-mono text-[12px]">DATABASE_URL</code> แล้วเขียน adapter
-          ใน <code className="font-mono text-[12px]">lib/repo.ts</code> เพื่อใช้งานจริง
+          {canPersist() ? (
+            <>
+              <b className="text-ink">โหมดสาธิต — ยังไม่ได้ต่อฐานข้อมูล</b> ของที่เพิ่มหรือแก้
+              จะบันทึกลงไฟล์ <code className="font-mono text-[12px]">data/overrides.json</code>{" "}
+              บนเครื่องนี้ ใช้ได้จริงตอนพัฒนา แต่ยังไม่เหมาะกับผู้ใช้หลายคนพร้อมกัน
+            </>
+          ) : (
+            <>
+              <b className="text-ink">อ่านได้อย่างเดียว — บันทึกไม่ได้</b> เซิร์ฟเวอร์นี้เขียนดิสก์ไม่ได้
+              (ปกติของโฮสต์แบบ serverless เช่น Vercel) ต้องต่อฐานข้อมูลจริงก่อนจึงจะเพิ่มหรือแก้การ์ดได้
+            </>
+          )}{" "}
+          ขั้นถัดไปคือตั้งค่า <code className="font-mono text-[12px]">DATABASE_URL</code> แล้วเขียน
+          adapter ใน <code className="font-mono text-[12px]">lib/repo.ts</code>
         </div>
       )}
 

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { setPrice } from "@/lib/repo";
+import { canPersist, setPrice } from "@/lib/repo";
 import { CONDITIONS, type Condition } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -34,6 +34,16 @@ export async function POST(request: Request) {
   }
   if (typeof priceThb !== "number" || !Number.isFinite(priceThb) || priceThb <= 0) {
     return NextResponse.json({ error: "ราคาต้องเป็นตัวเลขมากกว่า 0" }, { status: 400 });
+  }
+
+  if (!canPersist()) {
+    return NextResponse.json(
+      {
+        error:
+          "บันทึกไม่ได้ในสภาพแวดล้อมนี้ เพราะดิสก์เขียนไม่ได้ ต้องต่อฐานข้อมูลจริงก่อน",
+      },
+      { status: 503 },
+    );
   }
 
   const updated = setPrice(variantId, condition, priceThb);

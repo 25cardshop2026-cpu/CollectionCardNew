@@ -176,7 +176,7 @@ const VARIANT_MULTIPLIER: Record<VariantType, number> = {
   promo: 2.2,
 };
 
-function slugify(input: string): string {
+export function slugify(input: string): string {
   return input
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
@@ -207,7 +207,7 @@ function makeRng(seed: number): () => number {
 
 export const HISTORY_DAYS = 90;
 
-function startOfToday(): Date {
+export function startOfToday(): Date {
   const d = new Date();
   d.setHours(0, 0, 0, 0);
   return d;

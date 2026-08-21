@@ -1,75 +1,161 @@
 import {
-  CARDS,
+  CARDS as SEED_CARDS,
   CONDITION_MULTIPLIER,
   GAMES,
   HISTORY_DAYS,
-  SETS,
-  VARIANTS,
+  SETS as SEED_SETS,
+  VARIANTS as SEED_VARIANTS,
   buildHistory,
+  slugify,
 } from "./seed";
+import {
+  isStorageWritable,
+  readOverrides,
+  writeOverrides,
+  type Overrides,
+} from "./overrides";
 import type {
   Card,
   CardSet,
   CardWithPrice,
   Condition,
   Game,
+  Language,
   Mover,
   PricePoint,
   PriceCurrent,
   Variant,
+  VariantType,
 } from "./types";
 
 /**
  * ชั้นเข้าถึงข้อมูลทั้งหมดของแอปอยู่ในไฟล์นี้ไฟล์เดียว
+ * หน้าเว็บสาธารณะและแดชบอร์ดอ่าน/เขียนผ่านฟังก์ชันชุดเดียวกัน
+ * ของที่เพิ่มในแดชบอร์ดจึงขึ้นบนหน้าเว็บทันที
  *
- * ตอนนี้ทำงานบนข้อมูลตัวอย่างในหน่วยความจำ (โหมดสาธิต)
+ * สถานะปัจจุบัน = ข้อมูลตั้งต้นใน seed.ts + ส่วนต่างที่แอดมินแก้ใน data/overrides.json
  * เมื่อจะต่อ Postgres จริง ให้แทนที่เนื้อในของฟังก์ชันเหล่านี้ด้วย query
- * โดยไม่ต้องแก้หน้าเว็บสักหน้า — สัญญาของฟังก์ชันคือขอบเขตที่ตั้งใจให้แลกเปลี่ยนได้
+ * โดยไม่ต้องแก้หน้าเว็บสักหน้า
  */
 
 export const IS_DEMO_MODE = !process.env.DATABASE_URL;
 
-const historyStore: PricePoint[] = buildHistory();
-
-const cardById = new Map(CARDS.map((c) => [c.id, c]));
-const cardBySlug = new Map(CARDS.map((c) => [c.slug, c]));
-const setByCode = new Map(SETS.map((s) => [s.code, s]));
-const variantById = new Map(VARIANTS.map((v) => [v.id, v]));
-
-const variantsByCard = new Map<string, Variant[]>();
-for (const variant of VARIANTS) {
-  const list = variantsByCard.get(variant.cardId) ?? [];
-  list.push(variant);
-  variantsByCard.set(variant.cardId, list);
+/** บันทึกลงดิสก์ได้ไหม — บน serverless จะเป็น false */
+export function canPersist(): boolean {
+  return isStorageWritable();
 }
 
-/** ราคา NM ล่าสุดของแต่ละ variant พร้อมเวลาที่บันทึก */
-const latestNm = new Map<string, PricePoint>();
-/** ราคา NM เมื่อ 7 วันก่อน ใช้คำนวณ change7d */
-const weekAgoNm = new Map<string, number>();
+// ---------- สร้างสถานะปัจจุบันจากข้อมูลตั้งต้น + ส่วนต่าง ----------
 
-function reindexPrices(): void {
-  latestNm.clear();
-  weekAgoNm.clear();
+interface Snapshot {
+  sets: CardSet[];
+  cards: Card[];
+  variants: Variant[];
+  history: PricePoint[];
+  cardById: Map<string, Card>;
+  cardBySlug: Map<string, Card>;
+  setByCode: Map<string, CardSet>;
+  variantById: Map<string, Variant>;
+  variantsByCard: Map<string, Variant[]>;
+  latestNm: Map<string, PricePoint>;
+  weekAgoNm: Map<string, number>;
+}
+
+let cachedSnapshot: Snapshot | null = null;
+let cachedVersion = -1;
+
+function build(overrides: Overrides): Snapshot {
+  const deleted = new Set(overrides.deletedCardIds);
+
+  const sets = [...SEED_SETS, ...overrides.sets];
+
+  const cards = [...SEED_CARDS, ...overrides.cards]
+    .filter((card) => !deleted.has(card.id))
+    .map((card) => {
+      const edit = overrides.cardEdits[card.id];
+      return edit ? { ...card, ...edit } : card;
+    });
+
+  const variants = [...SEED_VARIANTS, ...overrides.variants].filter(
+    (variant) => !deleted.has(variant.cardId),
+  );
+
+  const history = [...buildHistory(), ...overrides.pricePoints].filter(
+    (point) => !deleted.has(point.variantId.split(":")[0]),
+  );
+
+  const variantsByCard = new Map<string, Variant[]>();
+  for (const variant of variants) {
+    const list = variantsByCard.get(variant.cardId) ?? [];
+    list.push(variant);
+    variantsByCard.set(variant.cardId, list);
+  }
 
   const byVariant = new Map<string, PricePoint[]>();
-  for (const point of historyStore) {
+  for (const point of history) {
     const list = byVariant.get(point.variantId) ?? [];
     list.push(point);
     byVariant.set(point.variantId, list);
   }
 
+  const latestNm = new Map<string, PricePoint>();
+  const weekAgoNm = new Map<string, number>();
   for (const [variantId, points] of byVariant) {
     points.sort((a, b) => a.recordedAt.localeCompare(b.recordedAt));
     latestNm.set(variantId, points[points.length - 1]);
-    const weekIndex = Math.max(0, points.length - 8);
-    weekAgoNm.set(variantId, points[weekIndex].priceThb);
+    weekAgoNm.set(variantId, points[Math.max(0, points.length - 8)].priceThb);
   }
+
+  return {
+    sets,
+    cards,
+    variants,
+    history,
+    cardById: new Map(cards.map((c) => [c.id, c])),
+    cardBySlug: new Map(cards.map((c) => [c.slug, c])),
+    setByCode: new Map(sets.map((s) => [s.code, s])),
+    variantById: new Map(variants.map((v) => [v.id, v])),
+    variantsByCard,
+    latestNm,
+    weekAgoNm,
+  };
 }
 
-reindexPrices();
+/** อ่านส่วนต่างจากไฟล์ แล้วสร้างดัชนีใหม่เฉพาะเมื่อมีอะไรเปลี่ยน */
+function snap(): Snapshot {
+  const overrides = readOverrides();
+  if (cachedSnapshot && cachedVersion === overrides.version) return cachedSnapshot;
+
+  cachedSnapshot = build(overrides);
+  cachedVersion = overrides.version;
+  return cachedSnapshot;
+}
+
+function commit(mutate: (draft: Overrides) => void): boolean {
+  const current = readOverrides();
+  const draft: Overrides = {
+    ...current,
+    sets: [...current.sets],
+    cards: [...current.cards],
+    variants: [...current.variants],
+    cardEdits: { ...current.cardEdits },
+    deletedCardIds: [...current.deletedCardIds],
+    pricePoints: [...current.pricePoints],
+    version: current.version + 1,
+  };
+
+  mutate(draft);
+
+  const ok = writeOverrides(draft);
+  if (ok) {
+    cachedSnapshot = build(draft);
+    cachedVersion = draft.version;
+  }
+  return ok;
+}
 
 function currentPrice(variantId: string, condition: Condition): PriceCurrent | null {
+  const { latestNm, weekAgoNm } = snap();
   const latest = latestNm.get(variantId);
   if (!latest) return null;
 
@@ -86,7 +172,7 @@ function currentPrice(variantId: string, condition: Condition): PriceCurrent | n
   };
 }
 
-// ---------- แคตตาล็อก ----------
+// ---------- อ่าน: แคตตาล็อก ----------
 
 export function listGames(): Game[] {
   return GAMES;
@@ -97,31 +183,37 @@ export function getGame(slug: string): Game | undefined {
 }
 
 export function listSets(gameSlug: string): CardSet[] {
-  return SETS.filter((s) => s.gameSlug === gameSlug).sort((a, b) =>
-    b.releaseDate.localeCompare(a.releaseDate),
-  );
+  return snap()
+    .sets.filter((s) => s.gameSlug === gameSlug)
+    .sort((a, b) => b.releaseDate.localeCompare(a.releaseDate));
+}
+
+export function listAllSets(): CardSet[] {
+  return [...snap().sets].sort((a, b) => b.releaseDate.localeCompare(a.releaseDate));
 }
 
 export function getSet(code: string): CardSet | undefined {
-  return setByCode.get(code);
+  return snap().setByCode.get(code);
 }
 
 export function getSetBySlug(gameSlug: string, setSlug: string): CardSet | undefined {
   const wanted = setSlug.toLowerCase();
-  return SETS.find(
+  return snap().sets.find(
     (s) => s.gameSlug === gameSlug && s.code.toLowerCase() === wanted,
   );
 }
 
 export function countCardsInGame(gameSlug: string): number {
   const codes = new Set(listSets(gameSlug).map((s) => s.code));
-  return CARDS.filter((c) => codes.has(c.setCode)).length;
+  return snap().cards.filter((c) => codes.has(c.setCode)).length;
 }
 
 export function getGameLastUpdated(gameSlug: string): string | null {
+  const { cards, variantsByCard, latestNm } = snap();
   const codes = new Set(listSets(gameSlug).map((s) => s.code));
+
   let newest: string | null = null;
-  for (const card of CARDS) {
+  for (const card of cards) {
     if (!codes.has(card.setCode)) continue;
     for (const variant of variantsByCard.get(card.id) ?? []) {
       const latest = latestNm.get(variant.id);
@@ -131,37 +223,40 @@ export function getGameLastUpdated(gameSlug: string): string | null {
   return newest;
 }
 
-// ---------- การ์ด ----------
+// ---------- อ่าน: การ์ด ----------
 
 export function getVariants(cardId: string): Variant[] {
-  return variantsByCard.get(cardId) ?? [];
+  return snap().variantsByCard.get(cardId) ?? [];
 }
 
 export function getCardBySlug(slug: string): Card | undefined {
-  return cardBySlug.get(slug);
+  return snap().cardBySlug.get(slug);
 }
 
 export function getCardById(id: string): Card | undefined {
-  return cardById.get(id);
+  return snap().cardById.get(id);
 }
 
-/** การ์ดทั้งหมดในชุด พร้อมราคาที่แพงที่สุดในบรรดา variant (ตัวที่คนอยากเห็น) */
+/** การ์ดทั้งหมดในชุด พร้อมราคาที่แพงที่สุดในบรรดา variant (ตัวที่คนเข้ามาดู) */
 export function listCardsInSet(setCode: string): CardWithPrice[] {
-  const set = setByCode.get(setCode);
+  const state = snap();
+  const set = state.setByCode.get(setCode);
   if (!set) return [];
 
-  return CARDS.filter((c) => c.setCode === setCode).map((card) => {
-    const variants = getVariants(card.id);
-    let headline: PriceCurrent | null = null;
-    for (const variant of variants) {
-      const price = currentPrice(variant.id, "NM");
-      if (price && (!headline || price.priceThb > headline.priceThb)) headline = price;
-    }
-    return { card, set, variants, headline };
-  });
+  return state.cards
+    .filter((c) => c.setCode === setCode)
+    .sort((a, b) => a.number.localeCompare(b.number))
+    .map((card) => {
+      const variants = getVariants(card.id);
+      let headline: PriceCurrent | null = null;
+      for (const variant of variants) {
+        const price = currentPrice(variant.id, "NM");
+        if (price && (!headline || price.priceThb > headline.priceThb)) headline = price;
+      }
+      return { card, set, variants, headline };
+    });
 }
 
-/** ตารางราคา variant × condition สำหรับหน้ารายละเอียดการ์ด */
 export function getPriceTable(
   cardId: string,
   conditions: Condition[],
@@ -176,22 +271,21 @@ export function getCurrentPrice(variantId: string, condition: Condition): PriceC
   return currentPrice(variantId, condition);
 }
 
-/** ราคาย้อนหลังของ variant หนึ่ง สำหรับวาดกราฟ */
 export function getHistory(variantId: string, days = HISTORY_DAYS): PricePoint[] {
-  return historyStore
-    .filter((p) => p.variantId === variantId)
+  return snap()
+    .history.filter((p) => p.variantId === variantId)
     .sort((a, b) => a.recordedAt.localeCompare(b.recordedAt))
     .slice(-days);
 }
 
-/** การ์ดที่ราคาขยับแรงที่สุดใน 7 วัน */
 export function listMovers(limit = 12, gameSlug?: string): Mover[] {
+  const state = snap();
   const rows: Mover[] = [];
 
-  for (const variant of VARIANTS) {
-    const card = cardById.get(variant.cardId);
+  for (const variant of state.variants) {
+    const card = state.cardById.get(variant.cardId);
     if (!card) continue;
-    const set = setByCode.get(card.setCode);
+    const set = state.setByCode.get(card.setCode);
     if (!set) continue;
     if (gameSlug && set.gameSlug !== gameSlug) continue;
 
@@ -205,7 +299,7 @@ export function listMovers(limit = 12, gameSlug?: string): Mover[] {
     .slice(0, limit);
 }
 
-// ---------- แดชบอร์ด ----------
+// ---------- อ่าน: แดชบอร์ด ----------
 
 export interface AdminPriceRow {
   card: Card;
@@ -217,15 +311,18 @@ export interface AdminPriceRow {
 export function listAdminPriceRows(setCode: string): AdminPriceRow[] {
   const now = Date.now();
 
-  return CARDS.filter((c) => c.setCode === setCode).flatMap((card) =>
-    getVariants(card.id).map((variant) => {
-      const current = currentPrice(variant.id, "NM");
-      const staleDays = current
-        ? Math.floor((now - new Date(current.updatedAt).getTime()) / 86400000)
-        : null;
-      return { card, variant, current, staleDays };
-    }),
-  );
+  return snap()
+    .cards.filter((c) => c.setCode === setCode)
+    .sort((a, b) => a.number.localeCompare(b.number))
+    .flatMap((card) =>
+      getVariants(card.id).map((variant) => {
+        const current = currentPrice(variant.id, "NM");
+        const staleDays = current
+          ? Math.floor((now - new Date(current.updatedAt).getTime()) / 86400000)
+          : null;
+        return { card, variant, current, staleDays };
+      }),
+    );
 }
 
 export interface AdminStats {
@@ -240,12 +337,13 @@ export interface AdminStats {
 const STALE_AFTER_DAYS = 7;
 
 export function getAdminStats(): AdminStats {
+  const state = snap();
   const now = Date.now();
   let stale = 0;
   let lastUpdated: string | null = null;
 
-  for (const variant of VARIANTS) {
-    const latest = latestNm.get(variant.id);
+  for (const variant of state.variants) {
+    const latest = state.latestNm.get(variant.id);
     if (!latest) {
       stale++;
       continue;
@@ -257,39 +355,180 @@ export function getAdminStats(): AdminStats {
 
   return {
     games: GAMES.length,
-    sets: SETS.length,
-    cards: CARDS.length,
-    variants: VARIANTS.length,
+    sets: state.sets.length,
+    cards: state.cards.length,
+    variants: state.variants.length,
     stale,
     lastUpdated,
   };
 }
 
+// ---------- เขียน ----------
+
+const NOT_WRITABLE =
+  "บันทึกไม่ได้ในสภาพแวดล้อมนี้ เพราะดิสก์เขียนไม่ได้ (เช่นบน Vercel) ต้องต่อฐานข้อมูลจริงก่อน";
+
 /**
  * บันทึกราคาใหม่ — เพิ่มแถวใหม่เสมอ ไม่เขียนทับของเดิม
  * ประวัติราคาคือสินทรัพย์ของโปรเจกต์นี้ (ดู docs/PLAN.md ข้อ 4)
- *
- * หมายเหตุโหมดสาธิต: ข้อมูลอยู่ในหน่วยความจำของ process เท่านั้น
- * บน Vercel จะหายเมื่อ instance ถูกรีไซเคิล — ต้องต่อฐานข้อมูลจริงก่อนใช้งานจริง
  */
 export function setPrice(
   variantId: string,
   condition: Condition,
   priceThb: number,
 ): PriceCurrent | null {
-  if (!variantById.has(variantId)) return null;
+  if (!snap().variantById.has(variantId)) return null;
   if (!Number.isFinite(priceThb) || priceThb <= 0) return null;
 
-  // ราคาที่กรอกอิงสภาพใด ๆ ก็ได้ แต่เก็บลงเป็นฐาน NM เพื่อให้สอดคล้องกับข้อมูลตัวอย่าง
+  // ราคาที่กรอกอิงสภาพใดก็ได้ แต่เก็บเป็นฐาน NM เพื่อให้เทียบกันได้ทั้งระบบ
   const nmEquivalent = Math.round(priceThb / CONDITION_MULTIPLIER[condition]);
 
-  historyStore.push({
-    variantId,
-    condition: "NM",
-    priceThb: nmEquivalent,
-    recordedAt: new Date().toISOString(),
+  const ok = commit((draft) => {
+    draft.pricePoints.push({
+      variantId,
+      condition: "NM",
+      priceThb: nmEquivalent,
+      recordedAt: new Date().toISOString(),
+    });
   });
 
-  reindexPrices();
+  if (!ok) return null;
   return currentPrice(variantId, condition);
+}
+
+export interface NewSetInput {
+  gameSlug: string;
+  code: string;
+  nameTh: string;
+  nameEn: string;
+  language: Language;
+  releaseDate: string;
+  totalCards: number;
+}
+
+type Result<T> = { ok: true; value: T } | { ok: false; error: string };
+
+export function createSet(input: NewSetInput): Result<CardSet> {
+  const code = input.code.trim().toUpperCase();
+
+  if (!code) return { ok: false, error: "ต้องระบุรหัสชุด" };
+  if (!getGame(input.gameSlug)) return { ok: false, error: "ไม่พบเกมนี้" };
+  if (snap().setByCode.has(code)) return { ok: false, error: `มีชุดรหัส ${code} อยู่แล้ว` };
+  if (!input.nameTh.trim()) return { ok: false, error: "ต้องระบุชื่อชุดภาษาไทย" };
+
+  const set: CardSet = {
+    code,
+    gameSlug: input.gameSlug,
+    nameTh: input.nameTh.trim(),
+    nameEn: input.nameEn.trim() || input.nameTh.trim(),
+    language: input.language,
+    releaseDate: input.releaseDate,
+    totalCards: Math.max(0, Math.round(input.totalCards)),
+  };
+
+  if (!commit((draft) => draft.sets.push(set))) {
+    return { ok: false, error: NOT_WRITABLE };
+  }
+  return { ok: true, value: set };
+}
+
+export interface NewCardInput {
+  setCode: string;
+  number: string;
+  nameTh: string;
+  nameEn: string;
+  rarity: string;
+  cardType: string;
+  color: string;
+  variantTypes: VariantType[];
+  priceThb: number | null;
+}
+
+export function createCard(input: NewCardInput): Result<Card> {
+  const state = snap();
+  const number = input.number.trim().toUpperCase();
+
+  if (!state.setByCode.has(input.setCode)) return { ok: false, error: "ไม่พบชุดนี้" };
+  if (!number) return { ok: false, error: "ต้องระบุเลขการ์ด" };
+  if (!input.nameTh.trim()) return { ok: false, error: "ต้องระบุชื่อการ์ดภาษาไทย" };
+  if (state.cardById.has(number)) return { ok: false, error: `มีการ์ดเลข ${number} อยู่แล้ว` };
+
+  const nameEn = input.nameEn.trim() || input.nameTh.trim();
+  const card: Card = {
+    id: number,
+    slug: `${slugify(number)}-${slugify(nameEn)}`,
+    setCode: input.setCode,
+    number,
+    nameTh: input.nameTh.trim(),
+    nameEn,
+    rarity: input.rarity.trim() || "C",
+    cardType: input.cardType.trim() || "Character",
+    color: input.color.trim() || "ไม่ระบุ",
+  };
+
+  // slug คือ URL ถาวร ห้ามชนกัน
+  if (state.cardBySlug.has(card.slug)) card.slug = `${card.slug}-${slugify(input.setCode)}`;
+
+  const types: VariantType[] = [...input.variantTypes];
+  if (!types.includes("normal")) types.unshift("normal");
+
+  const ok = commit((draft) => {
+    draft.cards.push(card);
+    for (const variantType of types) {
+      draft.variants.push({
+        id: `${number}:${variantType}`,
+        cardId: number,
+        variantType,
+        isFoil: variantType !== "normal",
+      });
+    }
+    if (input.priceThb && input.priceThb > 0) {
+      // ตั้งราคาให้ variant ปกติ ส่วนตัวพิเศษให้ไปกรอกในหน้าอัปเดตราคา
+      draft.pricePoints.push({
+        variantId: `${number}:normal`,
+        condition: "NM",
+        priceThb: Math.round(input.priceThb),
+        recordedAt: new Date().toISOString(),
+      });
+    }
+  });
+
+  if (!ok) return { ok: false, error: NOT_WRITABLE };
+  return { ok: true, value: card };
+}
+
+export function updateCard(
+  id: string,
+  patch: Partial<Pick<Card, "nameTh" | "nameEn" | "rarity" | "cardType" | "color">>,
+): Result<Card> {
+  const card = snap().cardById.get(id);
+  if (!card) return { ok: false, error: "ไม่พบการ์ดนี้" };
+  if (patch.nameTh !== undefined && !patch.nameTh.trim()) {
+    return { ok: false, error: "ชื่อการ์ดภาษาไทยว่างไม่ได้" };
+  }
+
+  const clean: Partial<Card> = {};
+  if (patch.nameTh?.trim()) clean.nameTh = patch.nameTh.trim();
+  if (patch.nameEn?.trim()) clean.nameEn = patch.nameEn.trim();
+  if (patch.rarity?.trim()) clean.rarity = patch.rarity.trim();
+  if (patch.cardType?.trim()) clean.cardType = patch.cardType.trim();
+  if (patch.color?.trim()) clean.color = patch.color.trim();
+
+  const ok = commit((draft) => {
+    draft.cardEdits[id] = { ...draft.cardEdits[id], ...clean };
+  });
+
+  if (!ok) return { ok: false, error: NOT_WRITABLE };
+  return { ok: true, value: { ...card, ...clean } };
+}
+
+export function deleteCard(id: string): Result<true> {
+  if (!snap().cardById.has(id)) return { ok: false, error: "ไม่พบการ์ดนี้" };
+
+  const ok = commit((draft) => {
+    if (!draft.deletedCardIds.includes(id)) draft.deletedCardIds.push(id);
+  });
+
+  if (!ok) return { ok: false, error: NOT_WRITABLE };
+  return { ok: true, value: true };
 }

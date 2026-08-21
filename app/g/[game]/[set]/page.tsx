@@ -4,19 +4,13 @@ import { notFound } from "next/navigation";
 import { CardArt } from "@/components/CardArt";
 import { Chip } from "@/components/Chip";
 import { formatBaht, formatDate, formatPercent, trendClass } from "@/lib/format";
-import { getGame, getSetBySlug, listCardsInSet, listGames, listSets } from "@/lib/repo";
+import { getGame, getSetBySlug, listCardsInSet } from "@/lib/repo";
 import { VARIANT_LABEL } from "@/lib/types";
 
 type SortKey = "number" | "price" | "change";
 
-export function generateStaticParams() {
-  return listGames().flatMap((game) =>
-    listSets(game.slug).map((set) => ({
-      game: game.slug,
-      set: set.code.toLowerCase(),
-    })),
-  );
-}
+// อ่านข้อมูลสดทุกครั้ง เพื่อให้การ์ดที่เพิ่มในแดชบอร์ดขึ้นทันที
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,

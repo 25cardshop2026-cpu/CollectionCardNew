@@ -3,11 +3,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Chip } from "@/components/Chip";
 import { formatDate } from "@/lib/format";
-import { getGame, listGames, listCardsInSet, listSets } from "@/lib/repo";
+import { getGame, listCardsInSet, listSets } from "@/lib/repo";
 
-export function generateStaticParams() {
-  return listGames().map((game) => ({ game: game.slug }));
-}
+// อ่านข้อมูลสดทุกครั้ง เพื่อให้ชุดหรือการ์ดที่เพิ่มในแดชบอร์ดขึ้นทันที
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,

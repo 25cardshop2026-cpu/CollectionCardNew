@@ -10,3 +10,8 @@ next-env.d.ts
 .vercel
 .DS_Store
 Thumbs.db
+
+.vercel
+
+# ข้อมูลที่แอดมินแก้ระหว่างพัฒนา — เป็น runtime state ไม่ใช่ซอร์ส
+data/overrides.json

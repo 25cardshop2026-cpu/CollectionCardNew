@@ -9,6 +9,8 @@ import {
   listSets,
 } from "@/lib/repo";
 
+export const dynamic = "force-dynamic";
+
 export default function HomePage() {
   const games = listGames();
   const movers = listMovers(6);

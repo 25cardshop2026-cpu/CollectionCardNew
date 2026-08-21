@@ -14,12 +14,10 @@ import {
   getVariants,
   listCardsInSet,
 } from "@/lib/repo";
-import { CARDS } from "@/lib/seed";
 import { CONDITIONS, VARIANT_LABEL } from "@/lib/types";
 
-export function generateStaticParams() {
-  return CARDS.map((card) => ({ slug: card.slug }));
-}
+// อ่านข้อมูลสดทุกครั้ง เพื่อให้การ์ดที่เพิ่มหรือแก้ในแดชบอร์ดขึ้นทันที
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,
