@@ -1,0 +1,106 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #edeff2;
+  --surface: #ffffff;
+  --surface-2: #f5f6f8;
+  --surface-3: #e7eaef;
+  --ink: #13192a;
+  --ink-2: #414a60;
+  --ink-3: #79839a;
+  --line: #dce0e8;
+  --line-strong: #c0c7d3;
+  --accent: #8f6410;
+  --accent-soft: rgba(143, 100, 16, 0.1);
+  --on-accent: #ffffff;
+  --up: #1b7a55;
+  --down: #b04730;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1421;
+    --surface: #161e2e;
+    --surface-2: #1c2434;
+    --surface-3: #232c3e;
+    --ink: #e8ebf1;
+    --ink-2: #a8b2c6;
+    --ink-3: #7b8599;
+    --line: #27303f;
+    --line-strong: #3b4557;
+    --accent: #d9a748;
+    --accent-soft: rgba(217, 167, 72, 0.13);
+    --on-accent: #121828;
+    --up: #4fbf92;
+    --down: #e4805f;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #0e1421;
+  --surface: #161e2e;
+  --surface-2: #1c2434;
+  --surface-3: #232c3e;
+  --ink: #e8ebf1;
+  --ink-2: #a8b2c6;
+  --ink-3: #7b8599;
+  --line: #27303f;
+  --line-strong: #3b4557;
+  --accent: #d9a748;
+  --accent-soft: rgba(217, 167, 72, 0.13);
+  --on-accent: #121828;
+  --up: #4fbf92;
+  --down: #e4805f;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-on-accent: var(--on-accent);
+  --color-up: var(--up);
+  --color-down: var(--down);
+
+  --font-sans: "Leelawadee UI", "Noto Sans Thai", Thonburi, "Segoe UI", system-ui,
+    -apple-system, sans-serif;
+  --font-mono: Consolas, "Cascadia Mono", "SF Mono", Menlo, "DejaVu Sans Mono",
+    monospace;
+}
+
+html {
+  color-scheme: light dark;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* แถบฟอยล์ — ใช้จุดเดียวใต้ชื่อเว็บ */
+.foil-rule {
+  background: linear-gradient(90deg, #d9a748, #7fd1c0, #8fa8f0, #d98fc8, #d9a748);
+}
