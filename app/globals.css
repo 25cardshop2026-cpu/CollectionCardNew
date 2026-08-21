@@ -87,7 +87,7 @@
   --color-up: var(--up);
   --color-down: var(--down);
 
-  --font-display: var(--font-trirong), Georgia, "Noto Serif Thai", serif;
+  --font-display: var(--font-bai), "Leelawadee UI", system-ui, sans-serif;
   --font-sans: var(--font-plex-thai), "Leelawadee UI", system-ui, sans-serif;
   --font-mono: var(--font-plex-mono), Consolas, "SF Mono", monospace;
 
@@ -104,6 +104,35 @@ body {
   color: var(--ink);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+/* ---------------- ระยะบรรทัดของภาษาไทย ----------------
+   ภาษาไทยมีสระบนกับวรรณยุกต์ซ้อนขึ้นไปเหนือตัวอักษร และสระล่างซ้อนลงมา
+   ระยะบรรทัดที่พอดีกับอังกฤษ (ประมาณ 1.1) จึงทำให้ไทยชนกันเมื่อตัวโต
+   และห้ามบีบระยะตัวอักษรติดลบ เพราะวรรณยุกต์จะเบียดกันในแนวนอน
+
+   กฎนี้อยู่นอก layer ของ Tailwind จึงชนะ utility อย่าง leading-[1.08]
+   ที่เขียนไว้ในหน้าเพจ โดยไม่ต้องไล่แก้ทีละที่
+--------------------------------------------------------- */
+
+/*
+  ค่ามาจากการวัดขอบเขตหมึกจริงด้วย canvas measureText ไม่ได้กะเอา
+  พาดหัวใหญ่มีคำอย่าง "ซื้อ" ที่ซ้อนสระอือกับไม้โท หมึกสูงถึง 1.58 เท่า
+  ของขนาดฟอนต์ จึงต้องใช้ 1.65 ส่วนหัวข้อรองตัวเล็กกว่า 1.5 พอ
+*/
+:lang(th) h1,
+:lang(th) h2 {
+  line-height: 1.7;
+  letter-spacing: 0;
+}
+
+:lang(th) h3 {
+  line-height: 1.55;
+  letter-spacing: 0;
+}
+
+:lang(th) .font-display {
+  letter-spacing: 0;
 }
 
 /* พื้นหลังมีแสงทองจาง ๆ ลอยอยู่ด้านบน ให้ความรู้สึกเหมือนไฟส่องตู้โชว์ */

@@ -1,14 +1,15 @@
-import { IBM_Plex_Mono, IBM_Plex_Sans_Thai, Trirong } from "next/font/google";
+import { Bai_Jamjuree, IBM_Plex_Mono, IBM_Plex_Sans_Thai } from "next/font/google";
 
 /**
- * เซอริฟไทยสำหรับพาดหัว + Plex สำหรับเนื้อความและตัวเลข
- * แยกไฟล์ไว้เพราะมี root layout สองชุด (หน้าเว็บกับแดชบอร์ด) ที่ต้องใช้ร่วมกัน
+ * Bai Jamjuree สำหรับพาดหัว — ออกแบบไทยกับละตินมาคู่กัน
+ * ตำแหน่งสระและวรรณยุกต์จึงเข้าที่ ไม่ชนกันเวลาตัวโต
+ * IBM Plex Sans Thai สำหรับเนื้อความ และ Plex Mono สำหรับเลขการ์ดกับราคา
  */
 
-const trirong = Trirong({
+const baiJamjuree = Bai_Jamjuree({
   subsets: ["thai", "latin"],
-  weight: ["400", "600", "700"],
-  variable: "--font-trirong",
+  weight: ["500", "600", "700"],
+  variable: "--font-bai",
   display: "swap",
 });
 
@@ -26,4 +27,4 @@ const plexMono = IBM_Plex_Mono({
   display: "swap",
 });
 
-export const fontVariables = `${trirong.variable} ${plexThai.variable} ${plexMono.variable}`;
+export const fontVariables = `${baiJamjuree.variable} ${plexThai.variable} ${plexMono.variable}`;
