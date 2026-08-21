@@ -3,7 +3,7 @@
 import { useFormStatus } from "react-dom";
 
 const inputClass =
-  "w-full rounded-[4px] border border-line-strong bg-surface-2 px-2.5 py-1.5 text-[13.5px] focus:border-accent focus:bg-accent-soft";
+  "w-full rounded-[4px] border border-line-strong bg-surface-2 px-2.5 py-1.5 text-[13.5px] focus:border-gold focus:bg-gold-soft";
 
 export function Field({
   label,
@@ -81,7 +81,7 @@ export function CheckboxGroup({
               value={option.value}
               defaultChecked={option.defaultChecked}
               disabled={option.disabled}
-              className="accent-[var(--accent)]"
+              className="accent-[var(--gold)]"
             />
             <span className={option.disabled ? "text-ink-3" : ""}>{option.label}</span>
           </label>
@@ -108,7 +108,7 @@ export function SubmitButton({ children }: { children: React.ReactNode }) {
     <button
       type="submit"
       disabled={pending}
-      className="rounded-[4px] border border-accent bg-accent px-4 py-2 text-[13.5px] font-bold text-on-accent disabled:opacity-60"
+      className="rounded-[4px] border border-gold bg-gold px-4 py-2 text-[13.5px] font-bold text-on-gold disabled:opacity-60"
     >
       {pending ? "กำลังบันทึก…" : children}
     </button>

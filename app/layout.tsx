@@ -1,6 +1,33 @@
 import type { Metadata } from "next";
+import { IBM_Plex_Mono, IBM_Plex_Sans_Thai, Trirong } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
+
+/**
+ * เซอริฟไทยสำหรับพาดหัว + Plex สำหรับเนื้อความและตัวเลข
+ * คู่นี้เลือกเพราะ Trirong ให้ความรู้สึกแบบสิ่งพิมพ์ประณีต
+ * ส่วน Plex Mono ทำให้เลขการ์ดกับราคาเรียงเป็นคอลัมน์สวยงาม
+ */
+const trirong = Trirong({
+  subsets: ["thai", "latin"],
+  weight: ["400", "600", "700"],
+  variable: "--font-trirong",
+  display: "swap",
+});
+
+const plexThai = IBM_Plex_Sans_Thai({
+  subsets: ["thai", "latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-plex-thai",
+  display: "swap",
+});
+
+const plexMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  variable: "--font-plex-mono",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: {
@@ -11,47 +38,83 @@ export const metadata: Metadata = {
     "ฐานข้อมูลราคาการ์ดสะสม One Piece และ Pokémon แยกตามชุด เวอร์ชัน และสภาพการ์ด พร้อมราคาย้อนหลัง",
 };
 
+const NAV = [
+  { href: "/g/one-piece", label: "One Piece" },
+  { href: "/g/pokemon", label: "Pokémon" },
+  { href: "/movers", label: "ราคาขยับแรง" },
+];
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <html lang="th">
-      <body className="font-sans antialiased">
-        <div className="min-h-screen flex flex-col">
-          <header className="border-b border-line bg-surface">
-            <div className="mx-auto max-w-6xl px-4 sm:px-6 h-14 flex items-center gap-6">
-              <Link href="/" className="font-bold tracking-tight text-[15px]">
-                Collection&nbsp;Card
+    <html
+      lang="th"
+      className={`${trirong.variable} ${plexThai.variable} ${plexMono.variable}`}
+    >
+      <body className="font-sans">
+        <div className="flex min-h-screen flex-col">
+          <header className="sticky top-0 z-50 backdrop-blur-xl bg-[var(--glass)]">
+            <div className="mx-auto flex h-16 max-w-6xl items-center gap-8 px-5 sm:px-8">
+              <Link href="/" className="group/logo flex flex-col leading-none">
+                <span className="font-display text-[19px] font-semibold tracking-[-0.01em]">
+                  Collection Card
+                </span>
+                <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-ink-3">
+                  ราคาการ์ดสะสม
+                </span>
               </Link>
-              <nav className="flex items-center gap-5 text-[13.5px] text-ink-2">
-                <Link href="/g/one-piece" className="hover:text-ink">
-                  One Piece
-                </Link>
-                <Link href="/g/pokemon" className="hover:text-ink">
-                  Pokémon
-                </Link>
-                <Link href="/movers" className="hover:text-ink">
-                  ราคาขยับแรง
-                </Link>
+
+              <nav className="hidden items-center gap-7 text-[14px] text-ink-2 sm:flex">
+                {NAV.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="transition-colors hover:text-gold"
+                  >
+                    {item.label}
+                  </Link>
+                ))}
               </nav>
+
               <Link
                 href="/admin"
-                className="ml-auto font-mono text-[11px] uppercase tracking-[0.08em] text-ink-3 hover:text-accent"
+                className="ml-auto rounded-full border border-line-strong px-3.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 transition-colors hover:border-gold hover:text-gold"
               >
                 แดชบอร์ด
               </Link>
             </div>
-            <div className="foil-rule h-px" aria-hidden="true" />
+            <div className="gold-rule h-px" aria-hidden="true" />
           </header>
 
           <main className="flex-1">{children}</main>
 
-          <footer className="border-t border-line mt-16">
-            <div className="mx-auto max-w-6xl px-4 sm:px-6 py-8 text-[12.5px] text-ink-3 flex flex-wrap gap-x-6 gap-y-2">
-              <span>Collection Card — ร่างเฟส P0</span>
-              <span>ข้อมูลตัวอย่างเพื่อสาธิตโครงสร้าง ยังไม่ใช่ราคาตลาดจริง</span>
+          <footer className="mt-24 border-t border-line">
+            <div className="mx-auto max-w-6xl px-5 py-12 sm:px-8">
+              <div className="flex flex-wrap items-start justify-between gap-8">
+                <div className="flex flex-col gap-2">
+                  <span className="font-display text-[17px] font-semibold">
+                    Collection Card
+                  </span>
+                  <p className="max-w-[38ch] text-[13px] leading-relaxed text-ink-3">
+                    ฐานข้อมูลราคาการ์ดสะสมสำหรับนักสะสมชาวไทย
+                    แยกราคาตามเวอร์ชันและสภาพการ์ดอย่างละเอียด
+                  </p>
+                </div>
+                <nav className="flex flex-col gap-2 text-[13.5px] text-ink-2">
+                  {NAV.map((item) => (
+                    <Link key={item.href} href={item.href} className="hover:text-gold">
+                      {item.label}
+                    </Link>
+                  ))}
+                </nav>
+              </div>
+              <div className="hairline my-8" />
+              <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
+                เฟส P0 · ข้อมูลตัวอย่างเพื่อสาธิตโครงสร้าง ยังไม่ใช่ราคาตลาดจริง
+              </p>
             </div>
           </footer>
         </div>

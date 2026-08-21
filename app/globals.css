@@ -1,56 +1,73 @@
 @import "tailwindcss";
 
+/* ---------------- โทนสี ----------------
+   ออกแบบให้มืดเป็นหลัก เพราะการ์ดฟอยล์เปล่งประกายบนพื้นเข้มได้ดีที่สุด
+   แต่โหมดสว่างต้องดูดีเท่ากัน ไม่ใช่แค่กลับสี
+------------------------------------------ */
+
 :root {
-  --bg: #edeff2;
+  --bg: #e8e8eb;
   --surface: #ffffff;
-  --surface-2: #f5f6f8;
-  --surface-3: #e7eaef;
-  --ink: #13192a;
-  --ink-2: #414a60;
-  --ink-3: #79839a;
-  --line: #dce0e8;
-  --line-strong: #c0c7d3;
-  --accent: #8f6410;
-  --accent-soft: rgba(143, 100, 16, 0.1);
-  --on-accent: #ffffff;
-  --up: #1b7a55;
-  --down: #b04730;
+  --surface-2: #f4f4f6;
+  --surface-3: #e3e3e9;
+  --ink: #14151c;
+  --ink-2: #4a4b55;
+  --ink-3: #7c7d87;
+  --line: #dededf;
+  --line-strong: #c3c4cb;
+  --gold: #8a6a1e;
+  --gold-soft: rgba(138, 106, 30, 0.11);
+  --gold-line: rgba(138, 106, 30, 0.32);
+  --on-gold: #ffffff;
+  --up: #1c7a57;
+  --down: #b14a2e;
+  --glass: rgba(232, 232, 235, 0.86);
+  --shadow-card: 0 1px 2px rgba(20, 21, 28, 0.06), 0 8px 24px rgba(20, 21, 28, 0.07);
+  --shadow-lift: 0 2px 4px rgba(20, 21, 28, 0.08), 0 18px 40px rgba(20, 21, 28, 0.14);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0e1421;
-    --surface: #161e2e;
-    --surface-2: #1c2434;
-    --surface-3: #232c3e;
-    --ink: #e8ebf1;
-    --ink-2: #a8b2c6;
-    --ink-3: #7b8599;
-    --line: #27303f;
-    --line-strong: #3b4557;
-    --accent: #d9a748;
-    --accent-soft: rgba(217, 167, 72, 0.13);
-    --on-accent: #121828;
-    --up: #4fbf92;
-    --down: #e4805f;
+    --bg: #0a0b10;
+    --surface: #12141c;
+    --surface-2: #191c26;
+    --surface-3: #222634;
+    --ink: #f0ede6;
+    --ink-2: #a9a79f;
+    --ink-3: #73736d;
+    --line: #21232d;
+    --line-strong: #333644;
+    --gold: #d4af52;
+    --gold-soft: rgba(212, 175, 82, 0.12);
+    --gold-line: rgba(212, 175, 82, 0.34);
+    --on-gold: #14151c;
+    --up: #5cc79a;
+    --down: #e08466;
+    --glass: rgba(10, 11, 16, 0.88);
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 30px rgba(0, 0, 0, 0.34);
+    --shadow-lift: 0 2px 6px rgba(0, 0, 0, 0.5), 0 24px 50px rgba(0, 0, 0, 0.5);
   }
 }
 
 :root[data-theme="dark"] {
-  --bg: #0e1421;
-  --surface: #161e2e;
-  --surface-2: #1c2434;
-  --surface-3: #232c3e;
-  --ink: #e8ebf1;
-  --ink-2: #a8b2c6;
-  --ink-3: #7b8599;
-  --line: #27303f;
-  --line-strong: #3b4557;
-  --accent: #d9a748;
-  --accent-soft: rgba(217, 167, 72, 0.13);
-  --on-accent: #121828;
-  --up: #4fbf92;
-  --down: #e4805f;
+  --bg: #0a0b10;
+  --surface: #12141c;
+  --surface-2: #191c26;
+  --surface-3: #222634;
+  --ink: #f0ede6;
+  --ink-2: #a9a79f;
+  --ink-3: #73736d;
+  --line: #21232d;
+  --line-strong: #333644;
+  --gold: #d4af52;
+  --gold-soft: rgba(212, 175, 82, 0.12);
+  --gold-line: rgba(212, 175, 82, 0.34);
+  --on-gold: #14151c;
+  --up: #5cc79a;
+  --down: #e08466;
+  --glass: rgba(10, 11, 16, 0.88);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 30px rgba(0, 0, 0, 0.34);
+  --shadow-lift: 0 2px 6px rgba(0, 0, 0, 0.5), 0 24px 50px rgba(0, 0, 0, 0.5);
 }
 
 @theme inline {
@@ -63,16 +80,19 @@
   --color-ink-3: var(--ink-3);
   --color-line: var(--line);
   --color-line-strong: var(--line-strong);
-  --color-accent: var(--accent);
-  --color-accent-soft: var(--accent-soft);
-  --color-on-accent: var(--on-accent);
+  --color-gold: var(--gold);
+  --color-gold-soft: var(--gold-soft);
+  --color-gold-line: var(--gold-line);
+  --color-on-gold: var(--on-gold);
   --color-up: var(--up);
   --color-down: var(--down);
 
-  --font-sans: "Leelawadee UI", "Noto Sans Thai", Thonburi, "Segoe UI", system-ui,
-    -apple-system, sans-serif;
-  --font-mono: Consolas, "Cascadia Mono", "SF Mono", Menlo, "DejaVu Sans Mono",
-    monospace;
+  --font-display: var(--font-trirong), Georgia, "Noto Serif Thai", serif;
+  --font-sans: var(--font-plex-thai), "Leelawadee UI", system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), Consolas, "SF Mono", monospace;
+
+  --shadow-card: var(--shadow-card);
+  --shadow-lift: var(--shadow-lift);
 }
 
 html {
@@ -83,12 +103,172 @@ body {
   background: var(--bg);
   color: var(--ink);
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* พื้นหลังมีแสงทองจาง ๆ ลอยอยู่ด้านบน ให้ความรู้สึกเหมือนไฟส่องตู้โชว์ */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(60rem 32rem at 50% -12rem, var(--gold-soft), transparent 70%);
+}
+
+body > * {
+  position: relative;
+  z-index: 1;
 }
 
 :focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-  border-radius: 3px;
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+::selection {
+  background: var(--gold);
+  color: var(--on-gold);
+}
+
+/* ---------------- ผิวการ์ดตามระดับความหายาก ---------------- */
+
+.card-face {
+  position: relative;
+  overflow: hidden;
+  border-radius: 0.5rem;
+  border: 1px solid var(--line-strong);
+  box-shadow: var(--shadow-card);
+  transition:
+    transform 0.35s cubic-bezier(0.2, 0.7, 0.3, 1),
+    box-shadow 0.35s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+.group:hover .card-face {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lift);
+}
+
+/* แสงกวาดผ่านหน้าการ์ดตอนชี้ — เลียนแบบการเอียงการ์ดฟอยล์ให้ต้องแสง */
+.card-face::after {
+  content: "";
+  position: absolute;
+  inset: -40%;
+  background: linear-gradient(
+    68deg,
+    transparent 42%,
+    rgba(255, 255, 255, 0.42) 50%,
+    transparent 58%
+  );
+  transform: translateX(-120%);
+  transition: transform 0.75s cubic-bezier(0.3, 0.6, 0.2, 1);
+  pointer-events: none;
+}
+
+.group:hover .card-face::after {
+  transform: translateX(120%);
+}
+
+.surface-common {
+  background: linear-gradient(158deg, var(--surface-3), var(--surface-2));
+}
+
+.surface-rare {
+  background: linear-gradient(158deg, var(--surface-3), var(--surface-2) 55%, var(--surface-3));
+  border-color: var(--line-strong);
+}
+
+.surface-rare::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent 30%, rgba(190, 200, 220, 0.18) 50%, transparent 70%);
+}
+
+.surface-epic {
+  background: linear-gradient(158deg, var(--gold-soft), var(--surface-2) 60%);
+  border-color: var(--gold-line);
+}
+
+.surface-epic::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent 28%, var(--gold-soft) 50%, transparent 72%);
+}
+
+.surface-mythic {
+  background: linear-gradient(158deg, var(--surface-2), var(--surface-3));
+  border-color: var(--gold-line);
+}
+
+/* ฟอยล์รุ้ง สงวนไว้ให้ระดับหายากที่สุดเท่านั้น จะได้ยังรู้สึกพิเศษ */
+.surface-mythic::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.5;
+  background: linear-gradient(
+    132deg,
+    rgba(111, 216, 200, 0.5),
+    rgba(138, 160, 245, 0.45) 26%,
+    rgba(229, 143, 192, 0.45) 52%,
+    rgba(231, 196, 104, 0.5) 78%,
+    rgba(111, 216, 200, 0.5)
+  );
+  background-size: 220% 220%;
+  animation: foil-drift 9s ease-in-out infinite;
+}
+
+@keyframes foil-drift {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* เส้นฟอยล์ ใช้เป็นเส้นคั่นที่ยังมีชีวิต */
+.foil-rule {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(111, 216, 200, 0.7),
+    rgba(138, 160, 245, 0.7),
+    rgba(229, 143, 192, 0.7),
+    var(--gold),
+    transparent
+  );
+}
+
+.gold-rule {
+  background: linear-gradient(90deg, transparent, var(--gold-line), transparent);
+}
+
+/* ---------------- ส่วนประกอบที่ใช้ซ้ำ ---------------- */
+
+.vitrine {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 0.875rem;
+  box-shadow: var(--shadow-card);
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.hairline {
+  height: 1px;
+  background: var(--line);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -96,11 +276,11 @@ body {
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
-}
 
-/* แถบฟอยล์ — ใช้จุดเดียวใต้ชื่อเว็บ */
-.foil-rule {
-  background: linear-gradient(90deg, #d9a748, #7fd1c0, #8fa8f0, #d98fc8, #d9a748);
+  .group:hover .card-face {
+    transform: none;
+  }
 }

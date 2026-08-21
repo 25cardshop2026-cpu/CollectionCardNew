@@ -61,7 +61,7 @@ export function SetForm({ games }: { games: Game[] }) {
 
       <div className="flex items-center gap-3">
         <SubmitButton>เพิ่มชุด</SubmitButton>
-        <Link href="/admin/cards" className="text-[13.5px] text-ink-3 hover:text-accent">
+        <Link href="/admin/cards" className="text-[13.5px] text-ink-3 hover:text-gold">
           ยกเลิก
         </Link>
       </div>

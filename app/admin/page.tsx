@@ -43,7 +43,7 @@ export default function AdminOverviewPage() {
           <span className="font-mono text-2xl font-bold tabular-nums">
             {stats.stale.toLocaleString("th-TH")}
           </span>
-          <Link href="/admin/prices" className="text-[13px] text-accent hover:underline">
+          <Link href="/admin/prices" className="text-[13px] text-gold hover:underline">
             ไปอัปเดตราคา →
           </Link>
         </div>
@@ -59,7 +59,7 @@ export default function AdminOverviewPage() {
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-accent">
+        <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-gold">
           ราคาขยับแรงใน 7 วัน
         </h2>
         <ul className="divide-y divide-line rounded-lg border border-line bg-surface">
@@ -70,7 +70,7 @@ export default function AdminOverviewPage() {
               </span>
               <Link
                 href={`/card/${mover.card.slug}`}
-                className="flex-1 min-w-0 truncate text-[13.5px] hover:text-accent"
+                className="flex-1 min-w-0 truncate text-[13.5px] hover:text-gold"
               >
                 {mover.card.nameTh}
               </Link>

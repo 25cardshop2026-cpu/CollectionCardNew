@@ -16,7 +16,7 @@ export default function AdminLayout({
   return (
     <div className="mx-auto max-w-6xl px-4 sm:px-6 py-8 flex flex-col gap-6">
       <div className="flex flex-wrap items-center gap-4 border-b border-line pb-4">
-        <h1 className="font-mono text-[12px] uppercase tracking-[0.14em] text-accent">
+        <h1 className="font-mono text-[12px] uppercase tracking-[0.14em] text-gold">
           แดชบอร์ด
         </h1>
         <nav className="flex flex-wrap gap-4 text-[13.5px] text-ink-2">
@@ -30,7 +30,7 @@ export default function AdminLayout({
             อัปเดตราคา
           </Link>
         </nav>
-        <Link href="/" className="ml-auto text-[13px] text-ink-3 hover:text-accent">
+        <Link href="/" className="ml-auto text-[13px] text-ink-3 hover:text-gold">
           ← กลับหน้าเว็บ
         </Link>
       </div>

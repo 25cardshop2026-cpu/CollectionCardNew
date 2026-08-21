@@ -1,18 +1,22 @@
+import { formatBaht, formatPercent } from "@/lib/format";
+
 export function Chip({
   children,
   tone = "default",
 }: {
   children: React.ReactNode;
-  tone?: "default" | "accent";
+  tone?: "default" | "gold" | "quiet";
 }) {
   const styles =
-    tone === "accent"
-      ? "border-accent bg-accent-soft text-accent"
-      : "border-line-strong text-ink-2";
+    tone === "gold"
+      ? "border-gold-line bg-gold-soft text-gold"
+      : tone === "quiet"
+        ? "border-transparent bg-surface-2 text-ink-3"
+        : "border-line-strong text-ink-2";
 
   return (
     <span
-      className={`inline-block rounded-[3px] border px-2 py-[3px] font-mono text-[10px] uppercase tracking-[0.06em] whitespace-nowrap ${styles}`}
+      className={`inline-block whitespace-nowrap rounded-full border px-2.5 py-[3px] font-mono text-[10px] uppercase tracking-[0.1em] ${styles}`}
     >
       {children}
     </span>
@@ -21,9 +25,41 @@ export function Chip({
 
 export function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
-    <p className="flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.16em] text-accent">
+    <p className="eyebrow flex items-center gap-3">
       {children}
-      <span className="h-px flex-1 bg-line" />
+      <span className="hairline flex-1" />
     </p>
+  );
+}
+
+/** ราคาปัจจุบัน + การเปลี่ยนแปลง ใช้ทุกที่ที่ต้องโชว์ราคาแบบย่อ */
+export function PriceTag({
+  priceThb,
+  change7d,
+  size = "md",
+}: {
+  priceThb: number | null;
+  change7d?: number | null;
+  size?: "sm" | "md";
+}) {
+  const priceClass = size === "sm" ? "text-[13px]" : "text-[15px]";
+  const trend =
+    change7d === null || change7d === undefined || change7d === 0
+      ? "text-ink-3"
+      : change7d > 0
+        ? "text-up"
+        : "text-down";
+
+  return (
+    <span className="flex items-baseline gap-2">
+      <span className={`font-mono ${priceClass} font-medium tabular-nums text-ink`}>
+        {priceThb === null ? "—" : formatBaht(priceThb)}
+      </span>
+      {change7d !== undefined && (
+        <span className={`font-mono text-[11px] tabular-nums ${trend}`}>
+          {formatPercent(change7d)}
+        </span>
+      )}
+    </span>
   );
 }

@@ -126,7 +126,7 @@ export function PriceEditor({ rows }: { rows: PriceRow[] }) {
                       }}
                       onBlur={() => void save(row)}
                       aria-label={`ราคาของ ${row.cardName} ${row.variantLabel}`}
-                      className="w-28 rounded-[3px] border border-line-strong bg-surface-2 px-2 py-1 text-right font-mono tabular-nums focus:border-accent focus:bg-accent-soft"
+                      className="w-28 rounded-[3px] border border-line-strong bg-surface-2 px-2 py-1 text-right font-mono tabular-nums focus:border-gold focus:bg-gold-soft"
                     />
                   </td>
                   <td className="px-3 py-2 whitespace-nowrap font-mono text-[11.5px]">

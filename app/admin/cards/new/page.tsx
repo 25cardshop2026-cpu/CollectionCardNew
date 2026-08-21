@@ -18,7 +18,7 @@ export default async function NewCardPage({
         <h2 className="text-xl font-bold tracking-tight">เพิ่มการ์ด</h2>
         <p className="text-ink-2">
           ยังไม่มีชุดในระบบ ต้อง{" "}
-          <Link href="/admin/sets/new" className="text-accent hover:underline">
+          <Link href="/admin/sets/new" className="text-gold hover:underline">
             เพิ่มชุดก่อน
           </Link>
         </p>

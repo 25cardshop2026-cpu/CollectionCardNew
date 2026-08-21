@@ -47,8 +47,8 @@ export default async function AdminPricesPage({
             href={`/admin/prices?set=${set.code}`}
             className={`rounded-[3px] border px-2 py-[3px] font-mono text-[10.5px] uppercase tracking-[0.06em] ${
               set.code === active.set.code
-                ? "border-accent bg-accent-soft text-accent"
-                : "border-line-strong text-ink-2 hover:border-accent hover:text-accent"
+                ? "border-gold bg-gold-soft text-gold"
+                : "border-line-strong text-ink-2 hover:border-gold hover:text-gold"
             }`}
             title={`${game.nameEn} · ${set.nameTh}`}
           >

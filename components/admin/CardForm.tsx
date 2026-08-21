@@ -121,7 +121,7 @@ export function CardForm({
         <SubmitButton>{isEdit ? "บันทึกการแก้ไข" : "เพิ่มการ์ด"}</SubmitButton>
         <Link
           href={`/admin/cards${card ? `?set=${card.setCode}` : ""}`}
-          className="text-[13.5px] text-ink-3 hover:text-accent"
+          className="text-[13.5px] text-ink-3 hover:text-gold"
         >
           ยกเลิก
         </Link>
