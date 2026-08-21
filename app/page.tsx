@@ -68,8 +68,9 @@ export default function LandingPage() {
         <div className="flex flex-col items-start gap-7">
           <p className="eyebrow">One Piece · Pokémon</p>
 
-          <h1 className="max-w-[16ch] text-balance font-display text-[clamp(2.5rem,7vw,4.25rem)] font-semibold leading-[1.08] tracking-[-0.025em]">
-            รู้ราคาการ์ดของคุณ <span className="text-gold">ก่อนจะซื้อหรือปล่อย</span>
+          <h1 className="max-w-[19ch] text-balance font-display text-[clamp(2.5rem,7vw,4.25rem)] font-semibold leading-[1.08] tracking-[-0.025em]">
+            Check the real price{" "}
+            <span className="text-gold">before you buy or sell</span>
           </h1>
 
           <p className="max-w-[48ch] text-[16.5px] leading-relaxed text-ink-2">
