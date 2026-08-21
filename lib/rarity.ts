@@ -20,7 +20,6 @@ export function rarityTier(rarity: string): RarityTier {
   return "common";
 }
 
-/** คลาสผิวการ์ดของแต่ละระดับ — นิยามจริงอยู่ใน globals.css */
 export const TIER_SURFACE: Record<RarityTier, string> = {
   mythic: "surface-mythic",
   epic: "surface-epic",
@@ -28,9 +27,3 @@ export const TIER_SURFACE: Record<RarityTier, string> = {
   common: "surface-common",
 };
 
-export const TIER_LABEL: Record<RarityTier, string> = {
-  mythic: "หายากที่สุด",
-  epic: "หายากมาก",
-  rare: "หายาก",
-  common: "ทั่วไป",
-};

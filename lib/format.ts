@@ -1,11 +1,19 @@
-const baht = new Intl.NumberFormat("th-TH", {
-  style: "currency",
-  currency: "THB",
-  maximumFractionDigits: 0,
-});
+import type { Dictionary } from "./i18n/th";
+import type { Locale } from "./i18n/config";
 
-export function formatBaht(value: number): string {
-  return baht.format(value);
+const INTL_LOCALE: Record<Locale, string> = { th: "th-TH", en: "en-US" };
+
+/** ราคาเป็นบาทเสมอ เพราะตลาดที่เราติดตามคือตลาดไทย แต่รูปแบบตัวเลขตามภาษา */
+export function formatBaht(value: number, locale: Locale = "th"): string {
+  return new Intl.NumberFormat(INTL_LOCALE[locale], {
+    style: "currency",
+    currency: "THB",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+export function formatNumber(value: number, locale: Locale = "th"): string {
+  return new Intl.NumberFormat(INTL_LOCALE[locale]).format(value);
 }
 
 export function formatPercent(value: number | null): string {
@@ -14,8 +22,8 @@ export function formatPercent(value: number | null): string {
   return `${sign}${Math.abs(value).toFixed(1)}%`;
 }
 
-export function formatDate(iso: string): string {
-  return new Intl.DateTimeFormat("th-TH", {
+export function formatDate(iso: string, locale: Locale = "th"): string {
+  return new Intl.DateTimeFormat(INTL_LOCALE[locale], {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -26,15 +34,27 @@ export function formatDate(iso: string): string {
  * "อัปเดต 2 ชม.ที่แล้ว" — ใช้ใน Server Component เท่านั้น
  * ถ้าเรียกจากฝั่ง client จะเกิด hydration mismatch เพราะเวลาต่างกัน
  */
-export function formatAge(iso: string, now: Date = new Date()): string {
-  const minutes = Math.max(0, Math.round((now.getTime() - new Date(iso).getTime()) / 60000));
-  if (minutes < 1) return "เมื่อครู่";
-  if (minutes < 60) return `${minutes} นาทีที่แล้ว`;
+export function formatAge(
+  iso: string,
+  t: Dictionary,
+  locale: Locale = "th",
+  now: Date = new Date(),
+): string {
+  const minutes = Math.max(
+    0,
+    Math.round((now.getTime() - new Date(iso).getTime()) / 60000),
+  );
+
+  if (minutes < 1) return t.time.justNow;
+  if (minutes < 60) return t.time.minutes(minutes);
+
   const hours = Math.round(minutes / 60);
-  if (hours < 24) return `${hours} ชม.ที่แล้ว`;
+  if (hours < 24) return t.time.hours(hours);
+
   const days = Math.round(hours / 24);
-  if (days < 30) return `${days} วันก่อน`;
-  return formatDate(iso);
+  if (days < 30) return t.time.days(days);
+
+  return formatDate(iso, locale);
 }
 
 export function trendClass(change: number | null): string {

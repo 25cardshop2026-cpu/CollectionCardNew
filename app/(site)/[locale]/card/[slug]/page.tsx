@@ -4,8 +4,11 @@ import { notFound } from "next/navigation";
 import { CardArt } from "@/components/CardArt";
 import { Chip, PriceTag } from "@/components/Chip";
 import { Sparkline } from "@/components/Sparkline";
+import { cardName, cardNameAlt, setName } from "@/lib/display";
 import { formatAge, formatBaht, formatPercent, trendClass } from "@/lib/format";
-import { TIER_LABEL, rarityTier } from "@/lib/rarity";
+import { getDictionary } from "@/lib/i18n";
+import { isLocale, localePath } from "@/lib/i18n/config";
+import { rarityTier } from "@/lib/rarity";
 import {
   getCardBySlug,
   getCurrentPrice,
@@ -15,7 +18,7 @@ import {
   getVariants,
   listCardsInSet,
 } from "@/lib/repo";
-import { CONDITIONS, VARIANT_LABEL } from "@/lib/types";
+import { CONDITIONS } from "@/lib/types";
 
 // อ่านข้อมูลสดทุกครั้ง เพื่อให้การ์ดที่เพิ่มหรือแก้ในแดชบอร์ดขึ้นทันที
 export const dynamic = "force-dynamic";
@@ -23,12 +26,15 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ locale: string; slug: string }>;
 }): Promise<Metadata> {
-  const { slug } = await params;
+  const { locale, slug } = await params;
+  if (!isLocale(locale)) return {};
+
   const card = getCardBySlug(slug);
   if (!card) return {};
 
+  const t = getDictionary(locale);
   const set = getSet(card.setCode);
   const top = getVariants(card.id)
     .map((v) => getCurrentPrice(v.id, "NM"))
@@ -36,22 +42,39 @@ export async function generateMetadata({
     .sort((a, b) => b.priceThb - a.priceThb)[0];
 
   return {
-    title: `${card.number} ${card.nameTh} — ราคาล่าสุด ${top ? formatBaht(top.priceThb) : "ยังไม่มีข้อมูล"}`,
-    description: `ราคาการ์ด ${card.nameTh} (${card.nameEn}) ${card.number} จากชุด ${set?.code} แยกตามเวอร์ชันและสภาพการ์ด พร้อมราคาย้อนหลัง 90 วัน`,
+    title: t.card.title(
+      card.number,
+      cardName(card, locale),
+      top ? formatBaht(top.priceThb, locale) : t.card.noPrice,
+    ),
+    description: t.card.description(
+      card.nameTh,
+      card.nameEn,
+      card.number,
+      set?.code ?? "",
+    ),
+    alternates: {
+      languages: { th: `/th/card/${slug}`, en: `/en/card/${slug}` },
+    },
   };
 }
 
 export default async function CardPage({
   params,
 }: {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ locale: string; slug: string }>;
 }) {
-  const { slug } = await params;
+  const { locale, slug } = await params;
+  if (!isLocale(locale)) notFound();
+
   const card = getCardBySlug(slug);
   if (!card) notFound();
 
   const set = getSet(card.setCode);
   if (!set) notFound();
+
+  const t = getDictionary(locale);
+  const p = (path: string) => localePath(locale, path);
 
   const table = getPriceTable(card.id, CONDITIONS);
   const variants = getVariants(card.id);
@@ -95,16 +118,16 @@ export default async function CardPage({
       />
 
       <nav className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
-        <Link href="/" className="transition-colors hover:text-gold">
-          หน้าแรก
+        <Link href={p("/")} className="transition-colors hover:text-gold">
+          {t.nav.home}
         </Link>
         <span className="mx-2.5 text-line-strong">/</span>
-        <Link href={`/g/${set.gameSlug}`} className="transition-colors hover:text-gold">
+        <Link href={p(`/g/${set.gameSlug}`)} className="transition-colors hover:text-gold">
           {set.gameSlug === "one-piece" ? "One Piece" : "Pokémon"}
         </Link>
         <span className="mx-2.5 text-line-strong">/</span>
         <Link
-          href={`/g/${set.gameSlug}/${set.code.toLowerCase()}`}
+          href={p(`/g/${set.gameSlug}/${set.code.toLowerCase()}`)}
           className="transition-colors hover:text-gold"
         >
           {set.code}
@@ -119,7 +142,7 @@ export default async function CardPage({
           <CardArt card={card} className="w-full" />
           <div className="flex flex-wrap gap-1.5">
             <Chip tone="gold">{card.rarity}</Chip>
-            <Chip tone="quiet">{TIER_LABEL[tier]}</Chip>
+            <Chip tone="quiet">{t.tier[tier]}</Chip>
             <Chip tone="quiet">{card.cardType}</Chip>
             <Chip tone="quiet">{card.color}</Chip>
           </div>
@@ -130,48 +153,50 @@ export default async function CardPage({
         <div className="flex min-w-0 flex-col gap-12">
           <header className="flex flex-col gap-3">
             <span className="font-mono text-[12px] tracking-[0.08em] text-ink-3">
-              {card.number} · {set.nameTh}
+              {card.number} · {setName(set, locale)}
             </span>
             <h1 className="font-display text-[clamp(2rem,5vw,3rem)] font-semibold leading-[1.1] tracking-[-0.02em]">
-              {card.nameTh}
+              {cardName(card, locale)}
             </h1>
-            <p className="text-[15px] text-ink-2">{card.nameEn}</p>
+            <p className="text-[15px] text-ink-2">{cardNameAlt(card, locale)}</p>
           </header>
 
           {headlinePrice && headlineVariant && (
             <section className="flex flex-col gap-3">
               <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-3">
-                {VARIANT_LABEL[headlineVariant.variantType]} · สภาพ NM
+                {t.variant[headlineVariant.variantType]} · {t.card.conditionNm}
               </span>
               <div className="flex flex-wrap items-baseline gap-5">
                 <span className="font-mono text-[clamp(2.25rem,7vw,3.5rem)] font-medium leading-none tabular-nums tracking-[-0.03em]">
-                  {formatBaht(headlinePrice.priceThb)}
+                  {formatBaht(headlinePrice.priceThb, locale)}
                 </span>
                 <span
                   className={`font-mono text-[16px] tabular-nums ${trendClass(headlinePrice.change7d)}`}
                 >
                   {formatPercent(headlinePrice.change7d)}
-                  <span className="ml-1.5 text-[12px] text-ink-3">/ 7 วัน</span>
+                  <span className="ml-1.5 text-[12px] text-ink-3">{t.card.per7d}</span>
                 </span>
               </div>
               <span className="text-[12.5px] text-ink-3">
-                อัปเดต {formatAge(headlinePrice.updatedAt)}
+                {t.card.updated} {formatAge(headlinePrice.updatedAt, t, locale)}
               </span>
             </section>
           )}
 
           <section className="flex min-w-0 flex-col gap-4">
-            <p className="eyebrow">ราคาย้อนหลัง 90 วัน</p>
+            <p className="eyebrow">{t.card.historyTitle}</p>
             <div className="vitrine min-w-0 p-6">
               <Sparkline
                 points={history}
-                label={`กราฟราคาย้อนหลัง 90 วันของ ${card.nameTh}`}
+                t={t}
+                locale={locale}
+                label={t.card.historyLabel(cardName(card, locale))}
               />
             </div>
           </section>
 
           <section className="flex min-w-0 flex-col gap-4">
-            <p className="eyebrow">ราคาแยกตามเวอร์ชันและสภาพ</p>
+            <p className="eyebrow">{t.card.priceTableTitle}</p>
             <div className="vitrine min-w-0 overflow-x-auto">
               <table className="w-full text-[13.5px]">
                 <thead>
@@ -184,7 +209,7 @@ export default async function CardPage({
                         key={condition}
                         className="px-5 py-3.5 text-right font-mono text-[9.5px] font-normal uppercase tracking-[0.12em] text-ink-3"
                       >
-                        {condition}
+                        {t.condition[condition]}
                       </th>
                     ))}
                   </tr>
@@ -196,7 +221,7 @@ export default async function CardPage({
                       className="border-b border-line transition-colors last:border-0 hover:bg-surface-2"
                     >
                       <td className="whitespace-nowrap px-5 py-3">
-                        {VARIANT_LABEL[variant.variantType]}
+                        {t.variant[variant.variantType]}
                         {variant.variantType !== "normal" && (
                           <span className="ml-2 font-mono text-[9px] uppercase tracking-[0.12em] text-gold">
                             foil
@@ -208,7 +233,7 @@ export default async function CardPage({
                           key={CONDITIONS[i]}
                           className="whitespace-nowrap px-5 py-3 text-right font-mono tabular-nums text-ink-2"
                         >
-                          {price ? formatBaht(price.priceThb) : "—"}
+                          {price ? formatBaht(price.priceThb, locale) : "—"}
                         </td>
                       ))}
                     </tr>
@@ -217,8 +242,7 @@ export default async function CardPage({
               </table>
             </div>
             <p className="max-w-[62ch] text-[12.5px] leading-relaxed text-ink-3">
-              ราคาผูกกับเวอร์ชันการ์ดและสภาพ ไม่ใช่ผูกกับตัวการ์ด — การ์ดเกรด PSA และ BGS
-              เป็นตลาดแยกอีกชั้น จะเพิ่มในเฟสถัดไป
+              {t.card.priceNote}
             </p>
           </section>
         </div>
@@ -226,16 +250,20 @@ export default async function CardPage({
 
       {siblings.length > 0 && (
         <section className="flex flex-col gap-6 border-t border-line pt-12">
-          <p className="eyebrow">การ์ดอื่นในชุด {set.code}</p>
+          <p className="eyebrow">{t.card.siblings(set.code)}</p>
           <ul className="grid grid-cols-3 gap-x-5 gap-y-6 sm:grid-cols-6">
             {siblings.map(({ card: sibling, headline }) => (
               <li key={sibling.id}>
-                <Link href={`/card/${sibling.slug}`} className="group flex flex-col gap-2.5">
+                <Link href={p(`/card/${sibling.slug}`)} className="group flex flex-col gap-2.5">
                   <CardArt card={sibling} />
                   <span className="text-[12.5px] leading-snug transition-colors group-hover:text-gold">
-                    {sibling.nameTh}
+                    {cardName(sibling, locale)}
                   </span>
-                  <PriceTag priceThb={headline?.priceThb ?? null} size="sm" />
+                  <PriceTag
+                    priceThb={headline?.priceThb ?? null}
+                    size="sm"
+                    locale={locale}
+                  />
                 </Link>
               </li>
             ))}

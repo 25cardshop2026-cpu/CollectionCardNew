@@ -3,9 +3,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CardArt } from "@/components/CardArt";
 import { Chip, PriceTag } from "@/components/Chip";
+import { cardName, setName, setNameAlt } from "@/lib/display";
 import { formatDate } from "@/lib/format";
+import { getDictionary } from "@/lib/i18n";
+import { isLocale, localePath } from "@/lib/i18n/config";
 import { getGame, getSetBySlug, listCardsInSet } from "@/lib/repo";
-import { VARIANT_LABEL } from "@/lib/types";
 
 type SortKey = "number" | "price" | "change";
 
@@ -15,15 +17,26 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ game: string; set: string }>;
+  params: Promise<{ locale: string; game: string; set: string }>;
 }): Promise<Metadata> {
-  const { game: gameSlug, set: setSlug } = await params;
+  const { locale, game: gameSlug, set: setSlug } = await params;
+  if (!isLocale(locale)) return {};
+
   const set = getSetBySlug(gameSlug, setSlug);
   if (!set) return {};
 
+  const t = getDictionary(locale);
+  const name = setName(set, locale);
+
   return {
-    title: `${set.code} ${set.nameTh} — ราคาการ์ดทั้งชุด`,
-    description: `ราคาการ์ดในชุด ${set.code} ${set.nameEn} ทุกใบ อัปเดตล่าสุด แยกตามเวอร์ชันและสภาพการ์ด`,
+    title: t.set.title(set.code, name),
+    description: t.set.description(set.code, name),
+    alternates: {
+      languages: {
+        th: `/th/g/${gameSlug}/${setSlug}`,
+        en: `/en/g/${gameSlug}/${setSlug}`,
+      },
+    },
   };
 }
 
@@ -31,15 +44,19 @@ export default async function SetPage({
   params,
   searchParams,
 }: {
-  params: Promise<{ game: string; set: string }>;
+  params: Promise<{ locale: string; game: string; set: string }>;
   searchParams: Promise<{ rarity?: string; sort?: string }>;
 }) {
-  const { game: gameSlug, set: setSlug } = await params;
+  const { locale, game: gameSlug, set: setSlug } = await params;
   const { rarity, sort } = await searchParams;
+  if (!isLocale(locale)) notFound();
 
   const game = getGame(gameSlug);
   const set = getSetBySlug(gameSlug, setSlug);
   if (!game || !set) notFound();
+
+  const t = getDictionary(locale);
+  const p = (path: string) => localePath(locale, path);
 
   const all = listCardsInSet(set.code);
   const rarities = [...new Set(all.map((row) => row.card.rarity))];
@@ -57,7 +74,7 @@ export default async function SetPage({
       return a.card.number.localeCompare(b.card.number);
     });
 
-  const base = `/g/${game.slug}/${setSlug}`;
+  const base = p(`/g/${game.slug}/${setSlug}`);
   const filterHref = (next: { rarity?: string; sort?: string }) => {
     const query = new URLSearchParams();
     const r = next.rarity ?? rarity;
@@ -71,11 +88,11 @@ export default async function SetPage({
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-10 px-5 py-12 sm:px-8 sm:py-16">
       <nav className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
-        <Link href="/" className="transition-colors hover:text-gold">
-          หน้าแรก
+        <Link href={p("/")} className="transition-colors hover:text-gold">
+          {t.nav.home}
         </Link>
         <span className="mx-2.5 text-line-strong">/</span>
-        <Link href={`/g/${game.slug}`} className="transition-colors hover:text-gold">
+        <Link href={p(`/g/${game.slug}`)} className="transition-colors hover:text-gold">
           {game.nameEn}
         </Link>
         <span className="mx-2.5 text-line-strong">/</span>
@@ -87,19 +104,19 @@ export default async function SetPage({
           <Chip tone="gold">{set.code}</Chip>
           <Chip tone="quiet">{set.language}</Chip>
           <span className="font-mono text-[11px] text-ink-3">
-            วางจำหน่าย {formatDate(set.releaseDate)}
+            {t.set.released} {formatDate(set.releaseDate, locale)}
           </span>
         </div>
         <h1 className="font-display text-[clamp(1.9rem,4.5vw,2.75rem)] font-semibold leading-tight tracking-[-0.02em]">
-          {set.nameTh}
+          {setName(set, locale)}
         </h1>
-        <p className="text-[15px] text-ink-2">{set.nameEn}</p>
+        <p className="text-[15px] text-ink-2">{setNameAlt(set, locale)}</p>
       </header>
 
       <div className="flex flex-col gap-4 rounded-xl border border-line bg-surface-2/60 p-4 sm:flex-row sm:items-center sm:gap-8">
-        <FilterRow label="Rarity">
+        <FilterRow label={t.set.rarity}>
           <FilterLink href={filterHref({ rarity: "" })} active={!rarity}>
-            ทั้งหมด
+            {t.set.all}
           </FilterLink>
           {rarities.map((value) => (
             <FilterLink
@@ -112,15 +129,15 @@ export default async function SetPage({
           ))}
         </FilterRow>
 
-        <FilterRow label="เรียงตาม">
+        <FilterRow label={t.set.sortBy}>
           <FilterLink href={filterHref({ sort: "" })} active={sortKey === "number"}>
-            เลขการ์ด
+            {t.set.byNumber}
           </FilterLink>
           <FilterLink href={filterHref({ sort: "price" })} active={sortKey === "price"}>
-            ราคาสูงสุด
+            {t.set.byPrice}
           </FilterLink>
           <FilterLink href={filterHref({ sort: "change" })} active={sortKey === "change"}>
-            ขยับแรง
+            {t.set.byChange}
           </FilterLink>
         </FilterRow>
       </div>
@@ -131,20 +148,21 @@ export default async function SetPage({
 
           return (
             <li key={card.id}>
-              <Link href={`/card/${card.slug}`} className="group flex flex-col gap-3">
+              <Link href={p(`/card/${card.slug}`)} className="group flex flex-col gap-3">
                 <CardArt card={card} />
                 <div className="flex flex-col gap-1.5">
                   <span className="text-[13.5px] leading-snug transition-colors group-hover:text-gold">
-                    {card.nameTh}
+                    {cardName(card, locale)}
                   </span>
                   <PriceTag
                     priceThb={headline?.priceThb ?? null}
                     change7d={headline?.change7d ?? null}
                     size="sm"
+                    locale={locale}
                   />
                   {special && (
                     <span className="font-mono text-[9.5px] uppercase tracking-[0.12em] text-gold">
-                      มี {VARIANT_LABEL[special.variantType]}
+                      {t.set.has(t.variant[special.variantType])}
                     </span>
                   )}
                 </div>
@@ -155,7 +173,7 @@ export default async function SetPage({
       </ul>
 
       {rows.length === 0 && (
-        <p className="py-12 text-center text-ink-3">ไม่มีการ์ดที่ตรงกับตัวกรองนี้</p>
+        <p className="py-12 text-center text-ink-3">{t.set.empty}</p>
       )}
     </div>
   );

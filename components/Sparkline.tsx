@@ -1,14 +1,20 @@
 import { formatBaht } from "@/lib/format";
+import type { Dictionary } from "@/lib/i18n";
+import type { Locale } from "@/lib/i18n/config";
 import type { PricePoint } from "@/lib/types";
 
 /** กราฟราคาย้อนหลัง — area + เส้นทอง + จุดเน้นที่ปลาย พร้อมป้ายราคาสูงสุด/ต่ำสุด */
 export function Sparkline({
   points,
+  t,
+  locale,
   width = 720,
   height = 200,
   label,
 }: {
   points: PricePoint[];
+  t: Dictionary;
+  locale: Locale;
   width?: number;
   height?: number;
   label: string;
@@ -16,7 +22,7 @@ export function Sparkline({
   if (points.length < 2) {
     return (
       <div className="flex h-[200px] items-center justify-center text-[13px] text-ink-3">
-        ยังมีข้อมูลราคาไม่พอสำหรับวาดกราฟ
+        {t.card.notEnoughData}
       </div>
     );
   }
@@ -88,9 +94,13 @@ export function Sparkline({
       </svg>
 
       <figcaption className="flex justify-between font-mono text-[11px] tabular-nums text-ink-3">
-        <span>ต่ำสุด {formatBaht(min)}</span>
-        <span>{points.length} วัน</span>
-        <span>สูงสุด {formatBaht(max)}</span>
+        <span>
+          {t.card.low} {formatBaht(min, locale)}
+        </span>
+        <span>{t.card.days(points.length)}</span>
+        <span>
+          {t.card.high} {formatBaht(max, locale)}
+        </span>
       </figcaption>
     </figure>
   );

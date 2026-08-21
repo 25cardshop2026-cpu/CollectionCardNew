@@ -1,4 +1,5 @@
 import { formatBaht, formatPercent } from "@/lib/format";
+import type { Locale } from "@/lib/i18n/config";
 
 export function Chip({
   children,
@@ -37,10 +38,12 @@ export function PriceTag({
   priceThb,
   change7d,
   size = "md",
+  locale = "th",
 }: {
   priceThb: number | null;
   change7d?: number | null;
   size?: "sm" | "md";
+  locale?: Locale;
 }) {
   const priceClass = size === "sm" ? "text-[13px]" : "text-[15px]";
   const trend =
@@ -53,7 +56,7 @@ export function PriceTag({
   return (
     <span className="flex items-baseline gap-2">
       <span className={`font-mono ${priceClass} font-medium tabular-nums text-ink`}>
-        {priceThb === null ? "—" : formatBaht(priceThb)}
+        {priceThb === null ? "—" : formatBaht(priceThb, locale)}
       </span>
       {change7d !== undefined && (
         <span className={`font-mono text-[11px] tabular-nums ${trend}`}>

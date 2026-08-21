@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { formatAge, formatBaht, formatPercent, trendClass } from "@/lib/format";
+import { th } from "@/lib/i18n/th";
 import { getAdminStats, listMovers } from "@/lib/repo";
 
 export const dynamic = "force-dynamic";
@@ -53,7 +54,7 @@ export default function AdminOverviewPage() {
             อัปเดตล่าสุด
           </span>
           <span className="text-[15px]">
-            {stats.lastUpdated ? formatAge(stats.lastUpdated) : "ยังไม่มีข้อมูล"}
+            {stats.lastUpdated ? formatAge(stats.lastUpdated, th) : "ยังไม่มีข้อมูล"}
           </span>
         </div>
       </section>
