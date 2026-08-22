@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { fontVariables } from "@/lib/fonts";
-import { IS_DEMO_MODE, canPersist } from "@/lib/repo";
+import { STORAGE_KIND } from "@/lib/repo";
 import "../../globals.css";
 
 /**
@@ -47,23 +47,26 @@ export default function AdminLayout({
             </Link>
           </div>
 
-          {IS_DEMO_MODE && (
+          {STORAGE_KIND === "blob" && (
+            <div className="rounded-lg border border-up/40 bg-up/5 px-4 py-3 text-[13px] text-ink-2">
+              <b className="text-ink">บันทึกได้ — เก็บใน Vercel Blob</b> ของที่เพิ่มหรือแก้ที่นี่
+              จะขึ้นบนหน้าเว็บสาธารณะทันที และอยู่ถาวรแม้เซิร์ฟเวอร์จะรีสตาร์ท
+            </div>
+          )}
+
+          {STORAGE_KIND === "file" && (
             <div className="rounded-lg border border-down/40 bg-down/5 px-4 py-3 text-[13px] text-ink-2">
-              {canPersist() ? (
-                <>
-                  <b className="text-ink">โหมดสาธิต — ยังไม่ได้ต่อฐานข้อมูล</b> ของที่เพิ่มหรือแก้
-                  จะบันทึกลงไฟล์ <code className="font-mono text-[12px]">data/overrides.json</code>{" "}
-                  บนเครื่องนี้ ใช้ได้จริงตอนพัฒนา แต่ยังไม่เหมาะกับผู้ใช้หลายคนพร้อมกัน
-                </>
-              ) : (
-                <>
-                  <b className="text-ink">อ่านได้อย่างเดียว — บันทึกไม่ได้</b> เซิร์ฟเวอร์นี้เขียนดิสก์ไม่ได้
-                  (ปกติของโฮสต์แบบ serverless เช่น Vercel)
-                  ต้องต่อฐานข้อมูลจริงก่อนจึงจะเพิ่มหรือแก้การ์ดได้
-                </>
-              )}{" "}
-              ขั้นถัดไปคือตั้งค่า <code className="font-mono text-[12px]">DATABASE_URL</code> แล้วเขียน
-              adapter ใน <code className="font-mono text-[12px]">lib/repo.ts</code>
+              <b className="text-ink">โหมดพัฒนาในเครื่อง</b> ยังไม่ได้ต่อ Vercel Blob
+              ของที่เพิ่มหรือแก้จะบันทึกลงไฟล์{" "}
+              <code className="font-mono text-[12px]">data/overrides.json</code> บนเครื่องนี้เท่านั้น
+            </div>
+          )}
+
+          {STORAGE_KIND === "none" && (
+            <div className="rounded-lg border border-down/40 bg-down/5 px-4 py-3 text-[13px] text-ink-2">
+              <b className="text-ink">อ่านได้อย่างเดียว — บันทึกไม่ได้</b> เซิร์ฟเวอร์นี้เขียนดิสก์ไม่ได้
+              และไม่มี <code className="font-mono text-[12px]">BLOB_READ_WRITE_TOKEN</code>{" "}
+              ให้ต่อที่เก็บข้อมูล
             </div>
           )}
 

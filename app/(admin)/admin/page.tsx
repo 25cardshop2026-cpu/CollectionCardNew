@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { formatAge, formatBaht, formatPercent, trendClass } from "@/lib/format";
 import { th } from "@/lib/i18n/th";
-import { getAdminStats, listMovers } from "@/lib/repo";
+import { getAdminStats, listMovers, loadState } from "@/lib/repo";
 
 export const dynamic = "force-dynamic";
 
-export default function AdminOverviewPage() {
+export default async function AdminOverviewPage() {
+  await loadState();
+
   const stats = getAdminStats();
   const movers = listMovers(8);
 

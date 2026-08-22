@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CardForm } from "@/components/admin/CardForm";
-import { getCardById, listAllSets } from "@/lib/repo";
+import { getCardById, listAllSets, loadState } from "@/lib/repo";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +11,7 @@ export default async function EditCardPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  await loadState();
   const card = getCardById(decodeURIComponent(id));
   if (!card) notFound();
 

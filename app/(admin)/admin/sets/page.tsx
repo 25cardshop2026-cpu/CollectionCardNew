@@ -1,7 +1,12 @@
 import Link from "next/link";
-import { deleteSetAction } from "@/lib/actions";
+import {
+  deleteSetAction } from "@/lib/actions";
 import { formatDate } from "@/lib/format";
-import { listAllSets, listCardsInSet, listGames } from "@/lib/repo";
+import { listAllSets,
+  listCardsInSet,
+  listGames,
+  loadState,
+} from "@/lib/repo";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +28,7 @@ export default async function AdminSetsPage({
   }>;
 }) {
   const { confirm, deleted, cards: deletedCards, error } = await searchParams;
+  await loadState();
 
   const games = listGames();
   const sets = listAllSets();

@@ -5,7 +5,7 @@ import { Chip, PriceTag } from "@/components/Chip";
 import { formatBaht, formatNumber } from "@/lib/format";
 import { getDictionary } from "@/lib/i18n";
 import { isLocale, localePath } from "@/lib/i18n/config";
-import { getAdminStats, listAllSets, listCardsInSet, listMovers } from "@/lib/repo";
+import { getAdminStats, listAllSets, listCardsInSet, listMovers, loadState } from "@/lib/repo";
 import { HISTORY_DAYS } from "@/lib/seed";
 
 export const dynamic = "force-dynamic";
@@ -16,6 +16,7 @@ export default async function LandingPage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
+  await loadState();
   if (!isLocale(locale)) notFound();
 
   const t = getDictionary(locale);

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { createCard, createSet, deleteCard, deleteSet, updateCard } from "./repo";
+import { createCard, createSet, deleteCard, deleteSet, loadState, updateCard } from "./repo";
 import { VARIANT_LABEL, type Language, type VariantType } from "./types";
 
 export interface FormState {
@@ -27,6 +27,8 @@ export async function createCardAction(
   _prev: FormState,
   form: FormData,
 ): Promise<FormState> {
+  await loadState();
+
   const setCode = text(form, "setCode");
   const rawPrice = text(form, "priceThb").replace(/,/g, "").trim();
   const priceThb = rawPrice ? Number(rawPrice) : null;
@@ -40,7 +42,7 @@ export async function createCardAction(
     .filter((v): v is string => typeof v === "string")
     .filter(isVariantType);
 
-  const result = createCard({
+  const result = await createCard({
     setCode,
     number: text(form, "number"),
     nameTh: text(form, "nameTh"),
@@ -62,9 +64,11 @@ export async function updateCardAction(
   _prev: FormState,
   form: FormData,
 ): Promise<FormState> {
+  await loadState();
+
   const id = text(form, "id");
 
-  const result = updateCard(id, {
+  const result = await updateCard(id, {
     nameTh: text(form, "nameTh"),
     nameEn: text(form, "nameEn"),
     rarity: text(form, "rarity"),
@@ -81,10 +85,12 @@ export async function updateCardAction(
 }
 
 export async function deleteCardAction(form: FormData): Promise<void> {
+  await loadState();
+
   const id = text(form, "id");
   const setCode = text(form, "setCode");
 
-  const result = deleteCard(id);
+  const result = await deleteCard(id);
   revalidateEverything();
 
   const status = result.ok ? `deleted=${id}` : `error=${encodeURIComponent(result.error)}`;
@@ -95,6 +101,8 @@ export async function createSetAction(
   _prev: FormState,
   form: FormData,
 ): Promise<FormState> {
+  await loadState();
+
   const language = text(form, "language") === "EN" ? "EN" : "JP";
   const totalCards = Number(text(form, "totalCards") || "0");
 
@@ -105,7 +113,7 @@ export async function createSetAction(
   const releaseDate = text(form, "releaseDate");
   if (!releaseDate) return { error: "ต้องระบุวันวางจำหน่าย" };
 
-  const result = createSet({
+  const result = await createSet({
     gameSlug: text(form, "gameSlug"),
     code: text(form, "code"),
     nameTh: text(form, "nameTh"),
@@ -122,9 +130,11 @@ export async function createSetAction(
 }
 
 export async function deleteSetAction(form: FormData): Promise<void> {
+  await loadState();
+
   const code = text(form, "code");
 
-  const result = deleteSet(code);
+  const result = await deleteSet(code);
   revalidateEverything();
 
   const status = result.ok

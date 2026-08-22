@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { canPersist, setPrice } from "@/lib/repo";
+import { canPersist, loadState, setPrice } from "@/lib/repo";
 import { CONDITIONS, type Condition } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -46,7 +46,9 @@ export async function POST(request: Request) {
     );
   }
 
-  const updated = setPrice(variantId, condition, priceThb);
+  // ต้องโหลดสถานะก่อน เพราะ setPrice ตรวจว่ามี variant นี้จริงไหมจากดัชนีในหน่วยความจำ
+  await loadState();
+  const updated = await setPrice(variantId, condition, priceThb);
   if (!updated) {
     return NextResponse.json({ error: "ไม่พบเวอร์ชันการ์ดนี้" }, { status: 404 });
   }

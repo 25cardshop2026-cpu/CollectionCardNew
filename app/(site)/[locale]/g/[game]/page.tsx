@@ -6,7 +6,7 @@ import { setName, setNameAlt } from "@/lib/display";
 import { formatDate } from "@/lib/format";
 import { getDictionary } from "@/lib/i18n";
 import { isLocale, localePath } from "@/lib/i18n/config";
-import { getGame, listCardsInSet, listSets } from "@/lib/repo";
+import { getGame, listCardsInSet, listSets, loadState } from "@/lib/repo";
 
 // อ่านข้อมูลสดทุกครั้ง เพื่อให้ชุดหรือการ์ดที่เพิ่มในแดชบอร์ดขึ้นทันที
 export const dynamic = "force-dynamic";
@@ -17,6 +17,7 @@ export async function generateMetadata({
   params: Promise<{ locale: string; game: string }>;
 }): Promise<Metadata> {
   const { locale, game: gameSlug } = await params;
+  await loadState();
   if (!isLocale(locale)) return {};
 
   const game = getGame(gameSlug);
@@ -38,6 +39,7 @@ export default async function GamePage({
   params: Promise<{ locale: string; game: string }>;
 }) {
   const { locale, game: gameSlug } = await params;
+  await loadState();
   if (!isLocale(locale)) notFound();
 
   const game = getGame(gameSlug);

@@ -7,7 +7,7 @@ import { cardName, setName, setNameAlt } from "@/lib/display";
 import { formatDate } from "@/lib/format";
 import { getDictionary } from "@/lib/i18n";
 import { isLocale, localePath } from "@/lib/i18n/config";
-import { getGame, getSetBySlug, listCardsInSet } from "@/lib/repo";
+import { getGame, getSetBySlug, listCardsInSet, loadState } from "@/lib/repo";
 
 type SortKey = "number" | "price" | "change";
 
@@ -20,6 +20,7 @@ export async function generateMetadata({
   params: Promise<{ locale: string; game: string; set: string }>;
 }): Promise<Metadata> {
   const { locale, game: gameSlug, set: setSlug } = await params;
+  await loadState();
   if (!isLocale(locale)) return {};
 
   const set = getSetBySlug(gameSlug, setSlug);
@@ -48,6 +49,7 @@ export default async function SetPage({
   searchParams: Promise<{ rarity?: string; sort?: string }>;
 }) {
   const { locale, game: gameSlug, set: setSlug } = await params;
+  await loadState();
   const { rarity, sort } = await searchParams;
   if (!isLocale(locale)) notFound();
 

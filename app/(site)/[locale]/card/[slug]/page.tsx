@@ -17,6 +17,7 @@ import {
   getSet,
   getVariants,
   listCardsInSet,
+  loadState,
 } from "@/lib/repo";
 import { CONDITIONS } from "@/lib/types";
 
@@ -29,6 +30,7 @@ export async function generateMetadata({
   params: Promise<{ locale: string; slug: string }>;
 }): Promise<Metadata> {
   const { locale, slug } = await params;
+  await loadState();
   if (!isLocale(locale)) return {};
 
   const card = getCardBySlug(slug);
@@ -65,6 +67,7 @@ export default async function CardPage({
   params: Promise<{ locale: string; slug: string }>;
 }) {
   const { locale, slug } = await params;
+  await loadState();
   if (!isLocale(locale)) notFound();
 
   const card = getCardBySlug(slug);

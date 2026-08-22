@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { PriceEditor, type PriceRow } from "@/components/admin/PriceEditor";
-import { listAdminPriceRows, listGames, listSets } from "@/lib/repo";
+import { listAdminPriceRows, listGames, listSets, loadState } from "@/lib/repo";
 import { VARIANT_LABEL } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -11,6 +11,7 @@ export default async function AdminPricesPage({
   searchParams: Promise<{ set?: string }>;
 }) {
   const { set: requested } = await searchParams;
+  await loadState();
 
   const allSets = listGames().flatMap((game) =>
     listSets(game.slug).map((set) => ({ game, set })),

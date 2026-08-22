@@ -10,10 +10,14 @@ import {
   psa10ToNm,
   slugify,
 } from "./seed";
+import { cache } from "react";
 import {
+  EMPTY_OVERRIDES,
   isStorageWritable,
-  readOverrides,
-  writeOverrides,
+  loadOverrides,
+  saveOverrides,
+  usingBlob,
+  type LoadedOverrides,
   type Overrides,
 } from "./overrides";
 import type {
@@ -35,16 +39,25 @@ import type {
  * หน้าเว็บสาธารณะและแดชบอร์ดอ่าน/เขียนผ่านฟังก์ชันชุดเดียวกัน
  * ของที่เพิ่มในแดชบอร์ดจึงขึ้นบนหน้าเว็บทันที
  *
- * สถานะปัจจุบัน = ข้อมูลตั้งต้นใน seed.ts + ส่วนต่างที่แอดมินแก้ใน data/overrides.json
- * เมื่อจะต่อ Postgres จริง ให้แทนที่เนื้อในของฟังก์ชันเหล่านี้ด้วย query
- * โดยไม่ต้องแก้หน้าเว็บสักหน้า
+ * สถานะปัจจุบัน = ข้อมูลตั้งต้นใน seed.ts + ส่วนต่างที่แอดมินแก้ ซึ่งเก็บใน
+ * Vercel Blob (ดู overrides.ts) เมื่อจะย้ายไป Postgres ให้แทนที่เนื้อในของ
+ * ฟังก์ชันเหล่านี้ด้วย query โดยไม่ต้องแก้หน้าเว็บสักหน้า
  */
 
-export const IS_DEMO_MODE = !process.env.DATABASE_URL;
+/**
+ * ที่เก็บข้อมูลที่ใช้อยู่จริงตอนนี้
+ * blob = Vercel Blob (ใช้ได้ทั้งบนเว็บจริงและในเครื่อง)
+ * file = ไฟล์ในเครื่อง · none = เขียนอะไรไม่ได้เลย
+ */
+export const STORAGE_KIND: "blob" | "file" | "none" = usingBlob()
+  ? "blob"
+  : isStorageWritable()
+    ? "file"
+    : "none";
 
-/** บันทึกลงดิสก์ได้ไหม — บน serverless จะเป็น false */
+/** บันทึกได้ไหม */
 export function canPersist(): boolean {
-  return isStorageWritable();
+  return STORAGE_KIND !== "none";
 }
 
 // ---------- สร้างสถานะปัจจุบันจากข้อมูลตั้งต้น + ส่วนต่าง ----------
@@ -63,8 +76,10 @@ interface Snapshot {
   weekAgoNm: Map<string, number>;
 }
 
+/** สำเนาข้อมูลของ request ปัจจุบัน กับดัชนีที่สร้างจากสำเนานั้น — เป็นแคชล้วน ๆ */
+let loaded: LoadedOverrides = { overrides: EMPTY_OVERRIDES, key: "empty" };
 let cachedSnapshot: Snapshot | null = null;
-let cachedVersion = -1;
+let cachedKey: string | null = null;
 
 function build(overrides: Overrides): Snapshot {
   const deleted = new Set(overrides.deletedCardIds);
@@ -130,18 +145,32 @@ function build(overrides: Overrides): Snapshot {
   };
 }
 
-/** อ่านส่วนต่างจากไฟล์ แล้วสร้างดัชนีใหม่เฉพาะเมื่อมีอะไรเปลี่ยน */
-function snap(): Snapshot {
-  const overrides = readOverrides();
-  if (cachedSnapshot && cachedVersion === overrides.version) return cachedSnapshot;
+/**
+ * โหลดส่วนต่างจากที่เก็บข้อมูล — ต้องเรียกก่อนอ่านข้อมูลในทุกหน้า
+ *
+ * ที่เก็บข้อมูลเป็น Blob ซึ่งอ่านแบบ async เท่านั้น แต่ฟังก์ชันอ่านทั้งหมด
+ * ข้างล่างเป็น sync (หน้าเว็บเรียกกันหลายสิบจุด) จึงแยกเป็นสองจังหวะ:
+ * โหลดทีเดียวตอนต้น request แล้วที่เหลืออ่านจากสำเนาในหน่วยความจำ
+ *
+ * cache() ของ React ทำให้เรียกซ้ำกี่ครั้งใน request เดียวก็ยิงจริงครั้งเดียว
+ */
+export const loadState = cache(async (): Promise<void> => {
+  loaded = await loadOverrides();
+});
 
-  cachedSnapshot = build(overrides);
-  cachedVersion = overrides.version;
+/** สร้างดัชนีใหม่เฉพาะเมื่อข้อมูลที่โหลดมาเปลี่ยนจริง */
+function snap(): Snapshot {
+  if (cachedSnapshot && cachedKey === loaded.key) return cachedSnapshot;
+
+  cachedSnapshot = build(loaded.overrides);
+  cachedKey = loaded.key;
   return cachedSnapshot;
 }
 
-function commit(mutate: (draft: Overrides) => void): boolean {
-  const current = readOverrides();
+async function commit(mutate: (draft: Overrides) => void): Promise<boolean> {
+  // อ่านของล่าสุดก่อนเขียนเสมอ ไม่ใช้สำเนาที่ค้างอยู่ในหน่วยความจำ
+  // เพราะ instance อื่นอาจเพิ่งบันทึกอะไรไปแล้ว
+  const { overrides: current } = await loadOverrides();
   const draft: Overrides = {
     ...current,
     sets: [...current.sets],
@@ -156,12 +185,13 @@ function commit(mutate: (draft: Overrides) => void): boolean {
 
   mutate(draft);
 
-  const ok = writeOverrides(draft);
-  if (ok) {
-    cachedSnapshot = build(draft);
-    cachedVersion = draft.version;
-  }
-  return ok;
+  const saved = await saveOverrides(draft);
+  if (!saved) return false;
+
+  loaded = saved;
+  cachedSnapshot = build(saved.overrides);
+  cachedKey = saved.key;
+  return true;
 }
 
 function currentPrice(variantId: string, condition: Condition): PriceCurrent | null {
@@ -382,17 +412,17 @@ export function getAdminStats(): AdminStats {
 // ---------- เขียน ----------
 
 const NOT_WRITABLE =
-  "บันทึกไม่ได้ในสภาพแวดล้อมนี้ เพราะดิสก์เขียนไม่ได้ (เช่นบน Vercel) ต้องต่อฐานข้อมูลจริงก่อน";
+  "บันทึกไม่สำเร็จ — ที่เก็บข้อมูลไม่ตอบสนอง ลองใหม่อีกครั้ง";
 
 /**
  * บันทึกราคาใหม่ — เพิ่มแถวใหม่เสมอ ไม่เขียนทับของเดิม
  * ประวัติราคาคือสินทรัพย์ของโปรเจกต์นี้ (ดู docs/PLAN.md ข้อ 4)
  */
-export function setPrice(
+export async function setPrice(
   variantId: string,
   condition: Condition,
   priceThb: number,
-): PriceCurrent | null {
+): Promise<PriceCurrent | null> {
   if (!snap().variantById.has(variantId)) return null;
   if (!Number.isFinite(priceThb) || priceThb <= 0) return null;
 
@@ -403,7 +433,7 @@ export function setPrice(
       : Math.round(priceThb / CONDITION_MULTIPLIER[condition]);
   if (nmEquivalent <= 0) return null;
 
-  const ok = commit((draft) => {
+  const ok = await commit((draft) => {
     draft.pricePoints.push({
       variantId,
       condition: "NM",
@@ -428,7 +458,7 @@ export interface NewSetInput {
 
 type Result<T> = { ok: true; value: T } | { ok: false; error: string };
 
-export function createSet(input: NewSetInput): Result<CardSet> {
+export async function createSet(input: NewSetInput): Promise<Result<CardSet>> {
   const code = input.code.trim().toUpperCase();
 
   if (!code) return { ok: false, error: "ต้องระบุรหัสชุด" };
@@ -446,7 +476,7 @@ export function createSet(input: NewSetInput): Result<CardSet> {
     totalCards: Math.max(0, Math.round(input.totalCards)),
   };
 
-  if (!commit((draft) => draft.sets.push(set))) {
+  if (!await commit((draft) => draft.sets.push(set))) {
     return { ok: false, error: NOT_WRITABLE };
   }
   return { ok: true, value: set };
@@ -456,13 +486,13 @@ export function createSet(input: NewSetInput): Result<CardSet> {
  * ลบทั้งชุด — การ์ด เวอร์ชัน และราคาทั้งหมดในชุดหายตามไปด้วย
  * คืนจำนวนการ์ดที่หายไปเพื่อให้หน้าแดชบอร์ดบอกผู้ใช้ได้ว่าลบอะไรไปบ้าง
  */
-export function deleteSet(code: string): Result<{ cards: number }> {
+export async function deleteSet(code: string): Promise<Result<{ cards: number }>> {
   const set = snap().setByCode.get(code);
   if (!set) return { ok: false, error: "ไม่พบชุดนี้" };
 
   const cards = snap().cards.filter((card) => card.setCode === code).length;
 
-  const ok = commit((draft) => {
+  const ok = await commit((draft) => {
     if (!draft.deletedSetCodes.includes(code)) draft.deletedSetCodes.push(code);
     // ชุดที่เพิ่งสร้างเองในแดชบอร์ดให้เอาออกจากรายการที่เพิ่มด้วย
     // ไม่งั้นไฟล์ส่วนต่างจะบวมขึ้นเรื่อย ๆ ด้วยชุดที่ทั้งเพิ่มและลบ
@@ -485,7 +515,7 @@ export interface NewCardInput {
   priceThb: number | null;
 }
 
-export function createCard(input: NewCardInput): Result<Card> {
+export async function createCard(input: NewCardInput): Promise<Result<Card>> {
   const state = snap();
   const number = input.number.trim().toUpperCase();
 
@@ -513,7 +543,7 @@ export function createCard(input: NewCardInput): Result<Card> {
   const types: VariantType[] = [...input.variantTypes];
   if (!types.includes("normal")) types.unshift("normal");
 
-  const ok = commit((draft) => {
+  const ok = await commit((draft) => {
     draft.cards.push(card);
     for (const variantType of types) {
       draft.variants.push({
@@ -538,10 +568,10 @@ export function createCard(input: NewCardInput): Result<Card> {
   return { ok: true, value: card };
 }
 
-export function updateCard(
+export async function updateCard(
   id: string,
   patch: Partial<Pick<Card, "nameTh" | "nameEn" | "rarity" | "cardType" | "color">>,
-): Result<Card> {
+): Promise<Result<Card>> {
   const card = snap().cardById.get(id);
   if (!card) return { ok: false, error: "ไม่พบการ์ดนี้" };
   if (patch.nameTh !== undefined && !patch.nameTh.trim()) {
@@ -555,7 +585,7 @@ export function updateCard(
   if (patch.cardType?.trim()) clean.cardType = patch.cardType.trim();
   if (patch.color?.trim()) clean.color = patch.color.trim();
 
-  const ok = commit((draft) => {
+  const ok = await commit((draft) => {
     draft.cardEdits[id] = { ...draft.cardEdits[id], ...clean };
   });
 
@@ -563,10 +593,10 @@ export function updateCard(
   return { ok: true, value: { ...card, ...clean } };
 }
 
-export function deleteCard(id: string): Result<true> {
+export async function deleteCard(id: string): Promise<Result<true>> {
   if (!snap().cardById.has(id)) return { ok: false, error: "ไม่พบการ์ดนี้" };
 
-  const ok = commit((draft) => {
+  const ok = await commit((draft) => {
     if (!draft.deletedCardIds.includes(id)) draft.deletedCardIds.push(id);
   });
 

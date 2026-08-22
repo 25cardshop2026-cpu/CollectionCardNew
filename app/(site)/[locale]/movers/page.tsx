@@ -6,7 +6,7 @@ import { cardName } from "@/lib/display";
 import { formatBaht, formatPercent, trendClass } from "@/lib/format";
 import { getDictionary } from "@/lib/i18n";
 import { isLocale, localePath } from "@/lib/i18n/config";
-import { listMovers } from "@/lib/repo";
+import { listMovers, loadState } from "@/lib/repo";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +16,7 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
+  await loadState();
   if (!isLocale(locale)) return {};
 
   const t = getDictionary(locale);
@@ -32,6 +33,7 @@ export default async function MoversPage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
+  await loadState();
   if (!isLocale(locale)) notFound();
 
   const t = getDictionary(locale);

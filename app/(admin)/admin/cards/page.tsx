@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { deleteCardAction } from "@/lib/actions";
 import { formatBaht } from "@/lib/format";
-import { listAllSets, listCardsInSet } from "@/lib/repo";
+import { listAllSets, listCardsInSet, loadState } from "@/lib/repo";
 import { VARIANT_LABEL } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +18,7 @@ export default async function AdminCardsPage({
   }>;
 }) {
   const { set: requested, added, saved, deleted, error } = await searchParams;
+  await loadState();
 
   const sets = listAllSets();
   const active = sets.find((s) => s.code === requested) ?? sets[0];

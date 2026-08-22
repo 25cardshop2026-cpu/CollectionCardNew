@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { CardForm } from "@/components/admin/CardForm";
-import { listAllSets } from "@/lib/repo";
+import { listAllSets, loadState } from "@/lib/repo";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +10,7 @@ export default async function NewCardPage({
   searchParams: Promise<{ set?: string }>;
 }) {
   const { set } = await searchParams;
+  await loadState();
   const sets = listAllSets();
 
   if (sets.length === 0) {

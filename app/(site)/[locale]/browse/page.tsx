@@ -12,6 +12,7 @@ import {
   listGames,
   listMovers,
   listSets,
+  loadState,
 } from "@/lib/repo";
 
 export const dynamic = "force-dynamic";
@@ -22,6 +23,7 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
+  await loadState();
   if (!isLocale(locale)) return {};
 
   const t = getDictionary(locale);
@@ -34,6 +36,7 @@ export default async function BrowsePage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
+  await loadState();
   if (!isLocale(locale)) notFound();
 
   const t = getDictionary(locale);
