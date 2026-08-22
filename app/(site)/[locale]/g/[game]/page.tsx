@@ -50,7 +50,7 @@ export default async function GamePage({
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-12 px-5 py-12 sm:px-8 sm:py-16">
       <nav className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
-        <Link href={p("/")} className="transition-colors hover:text-gold">
+        <Link href={p("/")} className="transition-colors hover:text-accent">
           {t.nav.home}
         </Link>
         <span className="mx-2.5 text-line-strong">/</span>
@@ -61,7 +61,7 @@ export default async function GamePage({
         <h1 className="font-display text-[clamp(1.9rem,4.5vw,2.75rem)] font-semibold leading-tight tracking-[-0.02em]">
           {game.nameEn}
         </h1>
-        <div className="gold-rule h-px w-24" aria-hidden="true" />
+        <div className="accent-rule h-px w-24" aria-hidden="true" />
         <p className="max-w-[56ch] text-[15px] leading-relaxed text-ink-2">{game.tagline}</p>
       </header>
 
@@ -74,15 +74,15 @@ export default async function GamePage({
             <li key={set.code}>
               <Link
                 href={p(`/g/${game.slug}/${set.code.toLowerCase()}`)}
-                className="group vitrine flex h-full flex-col gap-5 p-6 transition-all duration-300 hover:border-gold-line hover:shadow-[var(--shadow-lift)]"
+                className="group vitrine hud flex h-full flex-col gap-5 p-6 transition-all duration-300 hover:border-accent-line hover:shadow-[var(--shadow-lift)]"
               >
                 <div className="flex items-center justify-between gap-3">
-                  <Chip tone="gold">{set.code}</Chip>
+                  <Chip tone="accent">{set.code}</Chip>
                   <Chip tone="quiet">{set.language}</Chip>
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <h2 className="font-display text-[19px] font-semibold leading-snug tracking-[-0.01em] transition-colors group-hover:text-gold">
+                  <h2 className="font-display text-[19px] font-semibold leading-snug tracking-[-0.01em] transition-colors group-hover:text-accent">
                     {setName(set, locale)}
                   </h2>
                   <p className="text-[13px] text-ink-3">{setNameAlt(set, locale)}</p>
@@ -111,7 +111,7 @@ export default async function GamePage({
                     aria-label={t.game.progressLabel(pct)}
                   >
                     <div
-                      className="h-full rounded-full bg-gold transition-[width] duration-500"
+                      className="h-full rounded-full bg-accent transition-[width] duration-500"
                       style={{ width: `${Math.max(pct, 2)}%` }}
                     />
                   </div>

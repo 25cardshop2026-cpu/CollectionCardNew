@@ -43,13 +43,13 @@ export default async function AdminCardsPage({
         <div className="flex gap-2">
           <Link
             href={`/admin/sets/new`}
-            className="rounded-[4px] border border-line-strong px-3 py-1.5 text-[13px] hover:border-gold hover:text-gold"
+            className="rounded-[4px] border border-line-strong px-3 py-1.5 text-[13px] hover:border-accent hover:text-accent"
           >
             + เพิ่มชุด
           </Link>
           <Link
             href={`/admin/cards/new${active ? `?set=${active.code}` : ""}`}
-            className="rounded-[4px] border border-gold bg-gold px-3 py-1.5 text-[13px] font-bold text-on-gold"
+            className="rounded-[4px] border border-accent bg-accent px-3 py-1.5 text-[13px] font-bold text-on-accent"
           >
             + เพิ่มการ์ด
           </Link>
@@ -78,8 +78,8 @@ export default async function AdminCardsPage({
             href={`/admin/cards?set=${set.code}`}
             className={`rounded-[3px] border px-2 py-[3px] font-mono text-[10.5px] uppercase tracking-[0.06em] ${
               set.code === active?.code
-                ? "border-gold bg-gold-soft text-gold"
-                : "border-line-strong text-ink-2 hover:border-gold hover:text-gold"
+                ? "border-accent bg-accent-soft text-accent"
+                : "border-line-strong text-ink-2 hover:border-accent hover:text-accent"
             }`}
           >
             {set.code}
@@ -118,7 +118,7 @@ export default async function AdminCardsPage({
                       {card.number}
                     </td>
                     <td className="px-3 py-2">
-                      <Link href={`/card/${card.slug}`} className="hover:text-gold">
+                      <Link href={`/card/${card.slug}`} className="hover:text-accent">
                         {card.nameTh}
                       </Link>
                       <span className="ml-2 text-[12px] text-ink-3">{card.nameEn}</span>
@@ -134,7 +134,7 @@ export default async function AdminCardsPage({
                       <div className="flex items-center justify-end gap-3">
                         <Link
                           href={`/admin/cards/${card.id}`}
-                          className="text-[12.5px] text-ink-3 hover:text-gold"
+                          className="text-[12.5px] text-ink-3 hover:text-accent"
                         >
                           แก้ไข
                         </Link>

@@ -56,8 +56,14 @@ export function Sparkline({
       >
         <defs>
           <linearGradient id="spark-fill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--gold)" stopOpacity="0.3" />
-            <stop offset="100%" stopColor="var(--gold)" stopOpacity="0" />
+            <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.32" />
+            <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
+          </linearGradient>
+          {/* เส้นราคาไล่จากไซแอนไปมาเจนตาตามแนวนอน คือคู่สีเดียวกับทั้งเว็บ */}
+          <linearGradient id="spark-line" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="var(--accent)" />
+            <stop offset="60%" stopColor="var(--accent-3)" />
+            <stop offset="100%" stopColor="var(--accent-2)" />
           </linearGradient>
           <filter id="spark-glow" x="-50%" y="-50%" width="200%" height="200%">
             <feGaussianBlur stdDeviation="3" result="blur" />
@@ -84,13 +90,14 @@ export function Sparkline({
         <path
           d={line}
           fill="none"
-          stroke="var(--gold)"
+          stroke="url(#spark-line)"
           strokeWidth={2}
           strokeLinejoin="round"
           strokeLinecap="round"
           vectorEffect="non-scaling-stroke"
+          filter="url(#spark-glow)"
         />
-        <circle cx={lastX} cy={lastY} r={4} fill="var(--gold)" filter="url(#spark-glow)" />
+        <circle cx={lastX} cy={lastY} r={4} fill="var(--accent-2)" filter="url(#spark-glow)" />
       </svg>
 
       <figcaption className="flex justify-between font-mono text-[11px] tabular-nums text-ink-3">

@@ -61,16 +61,16 @@ export default async function BrowsePage({
             <Link
               key={game.slug}
               href={p(`/g/${game.slug}`)}
-              className="group vitrine relative flex flex-col justify-between gap-10 overflow-hidden p-8 transition-all duration-300 hover:border-gold-line hover:shadow-[var(--shadow-lift)]"
+              className="group vitrine hud relative flex flex-col justify-between gap-10 overflow-hidden p-8 transition-all duration-300 hover:border-accent-line hover:shadow-[var(--shadow-lift)]"
             >
               <div
                 className="pointer-events-none absolute inset-x-0 -top-24 h-48 opacity-0 blur-2xl transition-opacity duration-500 group-hover:opacity-100"
-                style={{ background: "radial-gradient(circle, var(--gold-soft), transparent 70%)" }}
+                style={{ background: "radial-gradient(circle, var(--accent-soft), transparent 70%)" }}
                 aria-hidden="true"
               />
 
               <div className="flex flex-col gap-3">
-                <h2 className="font-display text-[26px] font-semibold leading-tight tracking-[-0.01em] transition-colors group-hover:text-gold">
+                <h2 className="font-display text-[26px] font-semibold leading-tight tracking-[-0.01em] transition-colors group-hover:text-accent">
                   {game.nameEn}
                 </h2>
                 <p className="max-w-[36ch] text-[14px] leading-relaxed text-ink-2">
@@ -115,7 +115,7 @@ export default async function BrowsePage({
       <section className="flex flex-col gap-6">
         <Eyebrow>{t.browse.moversTitle}</Eyebrow>
 
-        <ul className="vitrine divide-y divide-line overflow-hidden">
+        <ul className="vitrine hud divide-y divide-line overflow-hidden">
           {movers.map((mover, index) => (
             <li key={mover.variant.id}>
               <Link
@@ -128,7 +128,7 @@ export default async function BrowsePage({
                 <span className="hidden w-[92px] shrink-0 font-mono text-[11.5px] text-ink-3 sm:block">
                   {mover.card.number}
                 </span>
-                <span className="min-w-0 flex-1 truncate text-[14.5px] transition-colors group-hover:text-gold">
+                <span className="min-w-0 flex-1 truncate text-[14.5px] transition-colors group-hover:text-accent">
                   {cardName(mover.card, locale)}
                 </span>
                 <span className="hidden shrink-0 sm:block">
@@ -149,7 +149,7 @@ export default async function BrowsePage({
 
         <Link
           href={p("/movers")}
-          className="self-start font-mono text-[12px] uppercase tracking-[0.14em] text-gold hover:underline"
+          className="self-start font-mono text-[12px] uppercase tracking-[0.14em] text-accent hover:underline"
         >
           {t.browse.seeAll}
         </Link>

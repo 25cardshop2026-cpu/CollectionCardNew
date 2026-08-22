@@ -58,16 +58,20 @@ export default async function SiteLayout({
 
   return (
     <html lang={HTML_LANG[locale]} className={fontVariables}>
-      <body className="font-sans">
+      {/* คลาส site เปิดฉากหลังนีออน (แสง ตาราง เส้นสแกน) ที่นิยามไว้ใน globals.css */}
+      <body className="font-sans site">
         <div className="flex min-h-screen flex-col">
           <header className="sticky top-0 z-50 bg-[var(--glass)] backdrop-blur-xl">
             <div className="mx-auto flex h-16 max-w-6xl items-center gap-8 px-5 sm:px-8">
-              <Link href={p("/")} className="flex flex-col leading-none">
-                <span className="font-display text-[19px] font-semibold tracking-[-0.01em]">
-                  Collection Card
-                </span>
-                <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-ink-3">
-                  {t.nav.tagline}
+              <Link href={p("/")} className="group flex items-center gap-2.5 leading-none">
+                <span className="pulse-dot" aria-hidden="true" />
+                <span className="flex flex-col">
+                  <span className="font-display text-[19px] font-semibold tracking-[-0.01em] transition-colors group-hover:text-accent">
+                    Collection Card
+                  </span>
+                  <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-accent/70">
+                    {t.nav.tagline}
+                  </span>
                 </span>
               </Link>
 
@@ -76,7 +80,7 @@ export default async function SiteLayout({
                   <Link
                     key={item.href}
                     href={item.href}
-                    className="transition-colors hover:text-gold"
+                    className="transition-colors hover:text-accent"
                   >
                     {item.label}
                   </Link>
@@ -87,7 +91,7 @@ export default async function SiteLayout({
                 <LocaleSwitcher current={locale} />
                 <Link
                   href="/admin"
-                  className="hidden rounded-full border border-line-strong px-3.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 transition-colors hover:border-gold hover:text-gold sm:inline-block"
+                  className="hidden rounded-full border border-line-strong px-3.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 transition-colors hover:border-accent hover:text-accent sm:inline-block"
                 >
                   {t.nav.dashboard}
                 </Link>
@@ -96,12 +100,13 @@ export default async function SiteLayout({
                 </Link>
               </div>
             </div>
-            <div className="gold-rule h-px" aria-hidden="true" />
+            <div className="accent-rule h-px" aria-hidden="true" />
           </header>
 
           <main className="flex-1">{children}</main>
 
           <footer className="mt-24 border-t border-line">
+            <div className="foil-rule h-px opacity-60" aria-hidden="true" />
             <div className="mx-auto max-w-6xl px-5 py-12 sm:px-8">
               <div className="flex flex-wrap items-start justify-between gap-8">
                 <div className="flex flex-col gap-2">
@@ -114,7 +119,7 @@ export default async function SiteLayout({
                 </div>
                 <nav className="flex flex-col gap-2 text-[13.5px] text-ink-2">
                   {nav.map((item) => (
-                    <Link key={item.href} href={item.href} className="hover:text-gold">
+                    <Link key={item.href} href={item.href} className="hover:text-accent">
                       {item.label}
                     </Link>
                   ))}

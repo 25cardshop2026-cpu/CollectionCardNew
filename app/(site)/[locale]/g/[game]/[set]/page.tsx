@@ -88,11 +88,11 @@ export default async function SetPage({
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-10 px-5 py-12 sm:px-8 sm:py-16">
       <nav className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
-        <Link href={p("/")} className="transition-colors hover:text-gold">
+        <Link href={p("/")} className="transition-colors hover:text-accent">
           {t.nav.home}
         </Link>
         <span className="mx-2.5 text-line-strong">/</span>
-        <Link href={p(`/g/${game.slug}`)} className="transition-colors hover:text-gold">
+        <Link href={p(`/g/${game.slug}`)} className="transition-colors hover:text-accent">
           {game.nameEn}
         </Link>
         <span className="mx-2.5 text-line-strong">/</span>
@@ -101,7 +101,7 @@ export default async function SetPage({
 
       <header className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center gap-2">
-          <Chip tone="gold">{set.code}</Chip>
+          <Chip tone="accent">{set.code}</Chip>
           <Chip tone="quiet">{set.language}</Chip>
           <span className="font-mono text-[11px] text-ink-3">
             {t.set.released} {formatDate(set.releaseDate, locale)}
@@ -151,7 +151,7 @@ export default async function SetPage({
               <Link href={p(`/card/${card.slug}`)} className="group flex flex-col gap-3">
                 <CardArt card={card} />
                 <div className="flex flex-col gap-1.5">
-                  <span className="text-[13.5px] leading-snug transition-colors group-hover:text-gold">
+                  <span className="text-[13.5px] leading-snug transition-colors group-hover:text-accent">
                     {cardName(card, locale)}
                   </span>
                   <PriceTag
@@ -161,7 +161,7 @@ export default async function SetPage({
                     locale={locale}
                   />
                   {special && (
-                    <span className="font-mono text-[9.5px] uppercase tracking-[0.12em] text-gold">
+                    <span className="font-mono text-[9.5px] uppercase tracking-[0.12em] text-accent">
                       {t.set.has(t.variant[special.variantType])}
                     </span>
                   )}
@@ -210,8 +210,8 @@ function FilterLink({
       href={href}
       className={`rounded-full border px-3 py-1 font-mono text-[10px] uppercase tracking-[0.1em] transition-colors ${
         active
-          ? "border-gold-line bg-gold-soft text-gold"
-          : "border-line-strong text-ink-2 hover:border-gold-line hover:text-gold"
+          ? "border-accent-line bg-accent-soft text-accent"
+          : "border-line-strong text-ink-2 hover:border-accent-line hover:text-accent"
       }`}
     >
       {children}

@@ -6,11 +6,11 @@ export function Chip({
   tone = "default",
 }: {
   children: React.ReactNode;
-  tone?: "default" | "gold" | "quiet";
+  tone?: "default" | "accent" | "quiet";
 }) {
   const styles =
-    tone === "gold"
-      ? "border-gold-line bg-gold-soft text-gold"
+    tone === "accent"
+      ? "border-accent-line bg-accent-soft text-accent"
       : tone === "quiet"
         ? "border-transparent bg-surface-2 text-ink-3"
         : "border-line-strong text-ink-2";

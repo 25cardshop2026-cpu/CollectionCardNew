@@ -48,12 +48,12 @@ export default async function MoversPage({
         <h1 className="font-display text-[clamp(1.9rem,4.5vw,2.75rem)] font-semibold leading-tight tracking-[-0.02em]">
           {t.movers.heading}
         </h1>
-        <div className="gold-rule h-px w-24" aria-hidden="true" />
+        <div className="accent-rule h-px w-24" aria-hidden="true" />
         <p className="max-w-[58ch] text-[15px] leading-relaxed text-ink-2">{t.movers.sub}</p>
       </header>
 
       {/* ชุดกับเวอร์ชันถูกซ่อนบนจอแคบ เพื่อให้คอลัมน์ % ซึ่งเป็นหัวใจของหน้านี้ไม่ตกขอบ */}
-      <div className="vitrine min-w-0 overflow-hidden">
+      <div className="vitrine hud min-w-0 overflow-hidden">
         <table className="w-full text-[14px]">
           <thead>
             <tr className="border-b border-line">
@@ -81,7 +81,7 @@ export default async function MoversPage({
                 <td className="px-3 py-3 sm:px-5">
                   <Link
                     href={p(`/card/${mover.card.slug}`)}
-                    className="flex flex-col gap-0.5 transition-colors hover:text-gold"
+                    className="flex flex-col gap-0.5 transition-colors hover:text-accent"
                   >
                     <span className="font-mono text-[10.5px] tracking-[0.06em] text-ink-3">
                       {mover.card.number}

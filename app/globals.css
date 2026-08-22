@@ -1,73 +1,41 @@
 @import "tailwindcss";
 
 /* ---------------- โทนสี ----------------
-   ออกแบบให้มืดเป็นหลัก เพราะการ์ดฟอยล์เปล่งประกายบนพื้นเข้มได้ดีที่สุด
-   แต่โหมดสว่างต้องดูดีเท่ากัน ไม่ใช่แค่กลับสี
+   ธีมมืดอย่างเดียว ไม่มีโหมดสว่าง เพราะหน้าตาทั้งชุดวางอยู่บนแสงนีออน
+   ซึ่งต้องมีพื้นดำจริง ๆ ถึงจะเรืองขึ้นมาได้ พอสลับเป็นพื้นขาวสีจะจืดหมด
+
+   สีหลักคือไซแอน สีรองคือมาเจนตากับม่วง ใช้เป็นคู่สีเดียวกันทั้งเว็บ
+   โทนทองของเวอร์ชันก่อนถูกแทนที่ด้วยตัวแปรชุด --accent ทั้งหมดแล้ว
 ------------------------------------------ */
 
 :root {
-  --bg: #e8e8eb;
-  --surface: #ffffff;
-  --surface-2: #f4f4f6;
-  --surface-3: #e3e3e9;
-  --ink: #14151c;
-  --ink-2: #4a4b55;
-  --ink-3: #7c7d87;
-  --line: #dededf;
-  --line-strong: #c3c4cb;
-  --gold: #8a6a1e;
-  --gold-soft: rgba(138, 106, 30, 0.11);
-  --gold-line: rgba(138, 106, 30, 0.32);
-  --on-gold: #ffffff;
-  --up: #1c7a57;
-  --down: #b14a2e;
-  --glass: rgba(232, 232, 235, 0.86);
-  --shadow-card: 0 1px 2px rgba(20, 21, 28, 0.06), 0 8px 24px rgba(20, 21, 28, 0.07);
-  --shadow-lift: 0 2px 4px rgba(20, 21, 28, 0.08), 0 18px 40px rgba(20, 21, 28, 0.14);
-}
+  --bg: #04060d;
+  --bg-deep: #010207;
+  --surface: #0a0f1c;
+  --surface-2: #101828;
+  --surface-3: #18233b;
+  --ink: #e9f3ff;
+  --ink-2: #9fb3d4;
+  --ink-3: #6d80a6;
+  --line: #182339;
+  --line-strong: #28395c;
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #0a0b10;
-    --surface: #12141c;
-    --surface-2: #191c26;
-    --surface-3: #222634;
-    --ink: #f0ede6;
-    --ink-2: #a9a79f;
-    --ink-3: #73736d;
-    --line: #21232d;
-    --line-strong: #333644;
-    --gold: #d4af52;
-    --gold-soft: rgba(212, 175, 82, 0.12);
-    --gold-line: rgba(212, 175, 82, 0.34);
-    --on-gold: #14151c;
-    --up: #5cc79a;
-    --down: #e08466;
-    --glass: rgba(10, 11, 16, 0.88);
-    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 30px rgba(0, 0, 0, 0.34);
-    --shadow-lift: 0 2px 6px rgba(0, 0, 0, 0.5), 0 24px 50px rgba(0, 0, 0, 0.5);
-  }
-}
+  --accent: #3ee7ff;
+  --accent-soft: rgba(62, 231, 255, 0.1);
+  --accent-line: rgba(62, 231, 255, 0.38);
+  --on-accent: #02131b;
+  --accent-2: #ff4fd8;
+  --accent-3: #7b6bff;
 
-:root[data-theme="dark"] {
-  --bg: #0a0b10;
-  --surface: #12141c;
-  --surface-2: #191c26;
-  --surface-3: #222634;
-  --ink: #f0ede6;
-  --ink-2: #a9a79f;
-  --ink-3: #73736d;
-  --line: #21232d;
-  --line-strong: #333644;
-  --gold: #d4af52;
-  --gold-soft: rgba(212, 175, 82, 0.12);
-  --gold-line: rgba(212, 175, 82, 0.34);
-  --on-gold: #14151c;
-  --up: #5cc79a;
-  --down: #e08466;
-  --glass: rgba(10, 11, 16, 0.88);
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 30px rgba(0, 0, 0, 0.34);
-  --shadow-lift: 0 2px 6px rgba(0, 0, 0, 0.5), 0 24px 50px rgba(0, 0, 0, 0.5);
+  --up: #2ff0a8;
+  --down: #ff5c86;
+  --glass: rgba(4, 6, 13, 0.72);
+
+  --shadow-card: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 18px 40px rgba(0, 0, 0, 0.55);
+  --shadow-lift:
+    0 0 0 1px var(--accent-line), 0 0 34px -10px rgba(62, 231, 255, 0.55),
+    0 26px 60px rgba(0, 0, 0, 0.65);
+  --glow-accent: 0 0 24px -4px rgba(62, 231, 255, 0.65);
 }
 
 @theme inline {
@@ -80,10 +48,12 @@
   --color-ink-3: var(--ink-3);
   --color-line: var(--line);
   --color-line-strong: var(--line-strong);
-  --color-gold: var(--gold);
-  --color-gold-soft: var(--gold-soft);
-  --color-gold-line: var(--gold-line);
-  --color-on-gold: var(--on-gold);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-line: var(--accent-line);
+  --color-accent-2: var(--accent-2);
+  --color-accent-3: var(--accent-3);
+  --color-on-accent: var(--on-accent);
   --color-up: var(--up);
   --color-down: var(--down);
 
@@ -96,7 +66,7 @@
 }
 
 html {
-  color-scheme: light dark;
+  color-scheme: dark;
 }
 
 body {
@@ -135,15 +105,39 @@ body {
   letter-spacing: 0;
 }
 
-/* พื้นหลังมีแสงทองจาง ๆ ลอยอยู่ด้านบน ให้ความรู้สึกเหมือนไฟส่องตู้โชว์ */
-body::before {
+/* ---------------- ฉากหลังของหน้าเว็บสาธารณะ ----------------
+   ใส่คลาส .site ไว้ที่ body ของกลุ่ม (site) เท่านั้น แดชบอร์ดไม่เอาด้วย
+   เพราะเป็นเครื่องมือทำงาน ตารางกับตัวเลขต้องอ่านง่ายก่อนสวย
+------------------------------------------------------------- */
+
+/* ชั้นแสง: ไซแอนจากด้านบน มาเจนตาจากซ้ายล่าง ม่วงจากขวา */
+.site::before {
   content: "";
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 0;
   background:
-    radial-gradient(60rem 32rem at 50% -12rem, var(--gold-soft), transparent 70%);
+    radial-gradient(46rem 26rem at 50% -8rem, rgba(62, 231, 255, 0.16), transparent 72%),
+    radial-gradient(38rem 30rem at 6% 88%, rgba(255, 79, 216, 0.12), transparent 70%),
+    radial-gradient(34rem 28rem at 96% 34%, rgba(123, 107, 255, 0.14), transparent 70%),
+    linear-gradient(180deg, transparent, var(--bg-deep));
+}
+
+/* ชั้นตาราง HUD กับเส้นสแกน ซ้อนอีกที ให้พื้นมีเนื้อ ไม่ใช่ดำเรียบ ๆ */
+.site::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    linear-gradient(to right, rgba(62, 231, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(62, 231, 255, 0.05) 1px, transparent 1px),
+    repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.22) 0 1px, transparent 1px 3px);
+  background-size: 56px 56px, 56px 56px, 100% 3px;
+  /* ตารางจางหายไปก่อนถึงกลางจอ เพื่อไม่ให้แย่งสายตากับเนื้อหา */
+  mask-image: radial-gradient(120% 90% at 50% 0%, #000 0%, transparent 78%);
 }
 
 body > * {
@@ -152,14 +146,32 @@ body > * {
 }
 
 :focus-visible {
-  outline: 2px solid var(--gold);
+  outline: 2px solid var(--accent);
   outline-offset: 3px;
   border-radius: 4px;
 }
 
 ::selection {
-  background: var(--gold);
-  color: var(--on-gold);
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-deep);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-line);
 }
 
 /* ---------------- ผิวการ์ดตามระดับความหายาก ---------------- */
@@ -172,11 +184,13 @@ body > * {
   box-shadow: var(--shadow-card);
   transition:
     transform 0.35s cubic-bezier(0.2, 0.7, 0.3, 1),
-    box-shadow 0.35s cubic-bezier(0.2, 0.7, 0.3, 1);
+    box-shadow 0.35s cubic-bezier(0.2, 0.7, 0.3, 1),
+    border-color 0.35s;
 }
 
 .group:hover .card-face {
-  transform: translateY(-4px);
+  transform: translateY(-5px);
+  border-color: var(--accent-line);
   box-shadow: var(--shadow-lift);
 }
 
@@ -188,7 +202,7 @@ body > * {
   background: linear-gradient(
     68deg,
     transparent 42%,
-    rgba(255, 255, 255, 0.42) 50%,
+    rgba(180, 245, 255, 0.5) 50%,
     transparent 58%
   );
   transform: translateX(-120%);
@@ -205,49 +219,60 @@ body > * {
 }
 
 .surface-rare {
-  background: linear-gradient(158deg, var(--surface-3), var(--surface-2) 55%, var(--surface-3));
-  border-color: var(--line-strong);
+  background: linear-gradient(158deg, #14304a, var(--surface-2) 58%, #123048);
+  border-color: rgba(62, 231, 255, 0.28);
 }
 
 .surface-rare::before {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(120deg, transparent 30%, rgba(190, 200, 220, 0.18) 50%, transparent 70%);
+  background: linear-gradient(
+    120deg,
+    transparent 30%,
+    rgba(62, 231, 255, 0.22) 50%,
+    transparent 70%
+  );
 }
 
 .surface-epic {
-  background: linear-gradient(158deg, var(--gold-soft), var(--surface-2) 60%);
-  border-color: var(--gold-line);
+  background: linear-gradient(158deg, #2a1a52, var(--surface-2) 62%, #3a1747);
+  border-color: rgba(123, 107, 255, 0.42);
 }
 
 .surface-epic::before {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(120deg, transparent 28%, var(--gold-soft) 50%, transparent 72%);
+  background: linear-gradient(
+    120deg,
+    transparent 26%,
+    rgba(123, 107, 255, 0.34) 50%,
+    transparent 74%
+  );
 }
 
 .surface-mythic {
-  background: linear-gradient(158deg, var(--surface-2), var(--surface-3));
-  border-color: var(--gold-line);
+  background: linear-gradient(158deg, #101a3a, #2c0f3d);
+  border-color: rgba(255, 79, 216, 0.45);
 }
 
-/* ฟอยล์รุ้ง สงวนไว้ให้ระดับหายากที่สุดเท่านั้น จะได้ยังรู้สึกพิเศษ */
+/* ฟอยล์รุ้งนีออน สงวนไว้ให้ระดับหายากที่สุดเท่านั้น จะได้ยังรู้สึกพิเศษ */
 .surface-mythic::before {
   content: "";
   position: absolute;
   inset: 0;
-  opacity: 0.5;
+  opacity: 0.55;
   background: linear-gradient(
     132deg,
-    rgba(111, 216, 200, 0.5),
-    rgba(138, 160, 245, 0.45) 26%,
-    rgba(229, 143, 192, 0.45) 52%,
-    rgba(231, 196, 104, 0.5) 78%,
-    rgba(111, 216, 200, 0.5)
+    rgba(62, 231, 255, 0.75),
+    rgba(123, 107, 255, 0.65) 26%,
+    rgba(255, 79, 216, 0.7) 52%,
+    rgba(120, 255, 214, 0.6) 78%,
+    rgba(62, 231, 255, 0.75)
   );
   background-size: 220% 220%;
+  mix-blend-mode: screen;
   animation: foil-drift 9s ease-in-out infinite;
 }
 
@@ -261,31 +286,37 @@ body > * {
   }
 }
 
-/* เส้นฟอยล์ ใช้เป็นเส้นคั่นที่ยังมีชีวิต */
+/* ---------------- เส้นคั่น ---------------- */
+
+/* เส้นนีออนเต็มสเปกตรัม ใช้เป็นเส้นคั่นที่ยังมีชีวิต */
 .foil-rule {
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(111, 216, 200, 0.7),
-    rgba(138, 160, 245, 0.7),
-    rgba(229, 143, 192, 0.7),
-    var(--gold),
+    var(--accent),
+    var(--accent-3) 45%,
+    var(--accent-2) 70%,
     transparent
   );
 }
 
-.gold-rule {
-  background: linear-gradient(90deg, transparent, var(--gold-line), transparent);
+.accent-rule {
+  background: linear-gradient(90deg, transparent, var(--accent-line), var(--accent-2), transparent);
+  box-shadow: 0 0 12px -2px rgba(62, 231, 255, 0.7);
 }
 
 /* ---------------- ปุ่ม ---------------- */
 
 .btn {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  border-radius: 9999px;
+  overflow: hidden;
+  border-radius: 0.375rem;
+  /* มุมตัดเฉียงแบบแผงควบคุม อ่านออกว่าเป็นไซไฟตั้งแต่ยังไม่ทันดูสี */
+  clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
   padding: 1rem 2.25rem;
   font-weight: 600;
   font-size: 1rem;
@@ -294,34 +325,58 @@ body > * {
   transition:
     transform 0.2s cubic-bezier(0.2, 0.7, 0.3, 1),
     box-shadow 0.2s cubic-bezier(0.2, 0.7, 0.3, 1),
-    background-color 0.2s;
+    color 0.2s,
+    border-color 0.2s;
+}
+
+/* แสงวิ่งผ่านปุ่มตอนชี้ */
+.btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 40%,
+    rgba(255, 255, 255, 0.4) 50%,
+    transparent 60%
+  );
+  transform: translateX(-130%);
+  transition: transform 0.6s cubic-bezier(0.3, 0.6, 0.2, 1);
+  pointer-events: none;
+}
+
+.btn:hover::after {
+  transform: translateX(130%);
 }
 
 .btn-primary {
-  background: var(--gold);
-  color: var(--on-gold);
-  box-shadow: 0 10px 34px -8px var(--gold);
+  background: linear-gradient(112deg, var(--accent), #56a8ff 55%, var(--accent-2));
+  color: var(--on-accent);
+  box-shadow: 0 0 28px -6px rgba(62, 231, 255, 0.75);
 }
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 16px 42px -8px var(--gold);
+  box-shadow: 0 0 40px -6px rgba(255, 79, 216, 0.8);
 }
 
 .btn-ghost {
   border: 1px solid var(--line-strong);
+  background: rgba(62, 231, 255, 0.04);
   color: var(--ink);
 }
 
 .btn-ghost:hover {
-  border-color: var(--gold-line);
-  color: var(--gold);
+  border-color: var(--accent-line);
+  color: var(--accent);
   transform: translateY(-2px);
+  box-shadow: var(--glow-accent);
 }
 
 .btn-sm {
   padding: 0.625rem 1.25rem;
   font-size: 0.875rem;
+  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
 }
 
 /* การ์ดสามใบเรียงซ้อนกันแบบคลี่พัด ใช้โชว์ของจริงบนหน้าแลนดิ้ง */
@@ -351,11 +406,43 @@ body > * {
 
 /* ---------------- ส่วนประกอบที่ใช้ซ้ำ ---------------- */
 
+/* แผงกระจก: พื้นน้ำเงินเข้ม + แสงเรืองบาง ๆ ที่ขอบบน */
 .vitrine {
-  background: var(--surface);
+  position: relative;
+  background:
+    linear-gradient(180deg, rgba(62, 231, 255, 0.06), transparent 40%),
+    linear-gradient(158deg, var(--surface), var(--surface-2));
   border: 1px solid var(--line);
   border-radius: 0.875rem;
   box-shadow: var(--shadow-card);
+}
+
+/* กรอบมุมแบบจอ HUD ใส่เฉพาะแผงที่อยากให้เด่น ใส่ทุกที่แล้วจะรก */
+.hud::before,
+.hud::after {
+  content: "";
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  pointer-events: none;
+}
+
+/* วางขีดมุมไว้ที่ 0 ไม่ใช่ -1px เพราะแผงหลายอันเป็น overflow-hidden
+   ถ้าล้นออกไปนอกกรอบจะถูกตัดหายไปครึ่งหนึ่ง */
+.hud::before {
+  top: 0;
+  left: 0;
+  border-top: 1px solid var(--accent);
+  border-left: 1px solid var(--accent);
+  border-top-left-radius: 0.875rem;
+}
+
+.hud::after {
+  right: 0;
+  bottom: 0;
+  border-right: 1px solid var(--accent-2);
+  border-bottom: 1px solid var(--accent-2);
+  border-bottom-right-radius: 0.875rem;
 }
 
 .eyebrow {
@@ -363,12 +450,90 @@ body > * {
   font-size: 0.6875rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--gold);
+  color: var(--accent);
+  text-shadow: 0 0 14px rgba(62, 231, 255, 0.55);
 }
 
 .hairline {
   height: 1px;
   background: var(--line);
+}
+
+/* ตัวหนังสือไล่สีนีออน ใช้กับคำที่เป็นจุดสนใจของพาดหัว */
+.neon-text {
+  background: linear-gradient(96deg, var(--accent), var(--accent-3) 48%, var(--accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  /* ต้องใช้ drop-shadow ไม่ใช่ text-shadow เพราะตัวอักษรโปร่งใส */
+  filter: drop-shadow(0 0 18px rgba(62, 231, 255, 0.3));
+}
+
+/* ตัวเลขเรืองแสง ใช้กับสถิติและราคาหลัก */
+.neon-num {
+  color: var(--accent);
+  text-shadow: 0 0 22px rgba(62, 231, 255, 0.45);
+}
+
+/* เส้นขอบฟ้าแบบตารางเปอร์สเปกทีฟ วางไว้ใต้ hero */
+.grid-floor {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 15rem;
+  overflow: hidden;
+  perspective: 240px;
+  pointer-events: none;
+}
+
+.grid-floor::before {
+  content: "";
+  position: absolute;
+  inset: -60% -30% -25% -30%;
+  background-image:
+    linear-gradient(to right, rgba(62, 231, 255, 0.26) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 79, 216, 0.2) 1px, transparent 1px);
+  background-size: 64px 44px;
+  transform: rotateX(72deg);
+  transform-origin: 50% 100%;
+  mask-image: linear-gradient(to top, #000, transparent 72%);
+  animation: grid-run 7s linear infinite;
+}
+
+@keyframes grid-run {
+  to {
+    background-position: 0 44px;
+  }
+}
+
+/* จุดสถานะกะพริบ ใช้คู่กับป้าย "ข้อมูลสด" */
+.pulse-dot {
+  position: relative;
+  display: inline-block;
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 999px;
+  background: var(--up);
+  box-shadow: 0 0 10px var(--up);
+}
+
+.pulse-dot::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 999px;
+  border: 1px solid var(--up);
+  animation: pulse-ring 2.2s ease-out infinite;
+}
+
+@keyframes pulse-ring {
+  0% {
+    opacity: 0.9;
+    transform: scale(0.6);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.9);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

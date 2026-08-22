@@ -27,8 +27,8 @@ export function LocaleSwitcher({ current }: { current: Locale }) {
             aria-current={active ? "true" : undefined}
             className={`px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] transition-colors ${
               active
-                ? "bg-gold text-on-gold"
-                : "text-ink-3 hover:text-gold"
+                ? "bg-accent text-on-accent"
+                : "text-ink-3 hover:text-accent"
             }`}
           >
             {locale}

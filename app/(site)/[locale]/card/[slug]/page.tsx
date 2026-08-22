@@ -118,17 +118,17 @@ export default async function CardPage({
       />
 
       <nav className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
-        <Link href={p("/")} className="transition-colors hover:text-gold">
+        <Link href={p("/")} className="transition-colors hover:text-accent">
           {t.nav.home}
         </Link>
         <span className="mx-2.5 text-line-strong">/</span>
-        <Link href={p(`/g/${set.gameSlug}`)} className="transition-colors hover:text-gold">
+        <Link href={p(`/g/${set.gameSlug}`)} className="transition-colors hover:text-accent">
           {set.gameSlug === "one-piece" ? "One Piece" : "Pokémon"}
         </Link>
         <span className="mx-2.5 text-line-strong">/</span>
         <Link
           href={p(`/g/${set.gameSlug}/${set.code.toLowerCase()}`)}
-          className="transition-colors hover:text-gold"
+          className="transition-colors hover:text-accent"
         >
           {set.code}
         </Link>
@@ -141,7 +141,7 @@ export default async function CardPage({
         <div className="group flex flex-col gap-4">
           <CardArt card={card} className="w-full" />
           <div className="flex flex-wrap gap-1.5">
-            <Chip tone="gold">{card.rarity}</Chip>
+            <Chip tone="accent">{card.rarity}</Chip>
             <Chip tone="quiet">{t.tier[tier]}</Chip>
             <Chip tone="quiet">{card.cardType}</Chip>
             <Chip tone="quiet">{card.color}</Chip>
@@ -167,7 +167,7 @@ export default async function CardPage({
                 {t.variant[headlineVariant.variantType]} · {t.card.conditionNm}
               </span>
               <div className="flex flex-wrap items-baseline gap-5">
-                <span className="font-mono text-[clamp(2.25rem,7vw,3.5rem)] font-medium leading-none tabular-nums tracking-[-0.03em]">
+                <span className="neon-num font-mono text-[clamp(2.25rem,7vw,3.5rem)] font-medium leading-none tabular-nums tracking-[-0.03em]">
                   {formatBaht(headlinePrice.priceThb, locale)}
                 </span>
                 <span
@@ -185,7 +185,7 @@ export default async function CardPage({
 
           <section className="flex min-w-0 flex-col gap-4">
             <p className="eyebrow">{t.card.historyTitle}</p>
-            <div className="vitrine min-w-0 p-6">
+            <div className="vitrine hud min-w-0 p-6">
               <Sparkline
                 points={history}
                 t={t}
@@ -223,7 +223,7 @@ export default async function CardPage({
                       <td className="whitespace-nowrap px-5 py-3">
                         {t.variant[variant.variantType]}
                         {variant.variantType !== "normal" && (
-                          <span className="ml-2 font-mono text-[9px] uppercase tracking-[0.12em] text-gold">
+                          <span className="ml-2 font-mono text-[9px] uppercase tracking-[0.12em] text-accent">
                             foil
                           </span>
                         )}
@@ -256,7 +256,7 @@ export default async function CardPage({
               <li key={sibling.id}>
                 <Link href={p(`/card/${sibling.slug}`)} className="group flex flex-col gap-2.5">
                   <CardArt card={sibling} />
-                  <span className="text-[12.5px] leading-snug transition-colors group-hover:text-gold">
+                  <span className="text-[12.5px] leading-snug transition-colors group-hover:text-accent">
                     {cardName(sibling, locale)}
                   </span>
                   <PriceTag
