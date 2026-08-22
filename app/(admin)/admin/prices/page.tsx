@@ -24,6 +24,7 @@ export default async function AdminPricesPage({
     cardName: row.card.nameTh,
     variantLabel: VARIANT_LABEL[row.variant.variantType],
     price: row.current?.priceThb ?? null,
+    psaPrice: row.psa?.priceThb ?? null,
     staleDays: row.staleDays,
   }));
 

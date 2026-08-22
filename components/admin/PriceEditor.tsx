@@ -8,23 +8,45 @@ export interface PriceRow {
   cardName: string;
   variantLabel: string;
   price: number | null;
+  psaPrice: number | null;
   staleDays: number | null;
 }
 
 type RowStatus = "idle" | "saving" | "saved" | "error";
 
+/** เกรดที่ราคาในช่องกรอกหมายถึง */
+type Grade = "NM" | "PSA10";
+
+const GRADE_LABEL: Record<Grade, string> = {
+  NM: "ดิบ NM",
+  PSA10: "PSA 10",
+};
+
 /**
  * ตารางอัปเดตราคาแบบ spreadsheet
  * หน้านี้คือหน้าที่แอดมินจะแตะทุกวัน จึงต้องทำงานด้วยคีย์บอร์ดล้วนได้
  * Enter = บันทึกแล้วลงแถวถัดไป · ↑ ↓ = เลื่อนแถว
+ *
+ * สลับเกรดได้ว่าราคาที่กรอกเป็นการ์ดดิบหรือใบเกรด PSA 10
+ * ทั้งสองแบบเก็บลงฐานเดียวกัน เพราะราคาทุกอย่างอ้างอิงราคาดิบ NM
+ * ฝั่งเซิร์ฟเวอร์เป็นคนถอดเบี้ยเกรดออกให้เอง
  */
 export function PriceEditor({ rows }: { rows: PriceRow[] }) {
-  const [values, setValues] = useState<Record<string, string>>(() =>
-    Object.fromEntries(rows.map((r) => [r.variantId, r.price?.toString() ?? ""])),
-  );
+  const [grade, setGrade] = useState<Grade>("NM");
+  const [values, setValues] = useState<Record<string, string>>(() => initialValues(rows, "NM"));
   const [status, setStatus] = useState<Record<string, RowStatus>>({});
   const [saved, setSaved] = useState<Record<string, number>>({});
   const inputs = useRef<(HTMLInputElement | null)[]>([]);
+
+  const shownPrice = (row: PriceRow) => (grade === "PSA10" ? row.psaPrice : row.price);
+
+  function switchGrade(next: Grade) {
+    setGrade(next);
+    // เติมค่าในช่องใหม่ตามเกรดที่เลือก ไม่งั้นตัวเลขที่ค้างอยู่จะกลายเป็นคนละความหมาย
+    setValues(initialValues(rows, next));
+    setStatus({});
+    setSaved({});
+  }
 
   const focusRow = (index: number) => {
     const target = inputs.current[Math.max(0, Math.min(rows.length - 1, index))];
@@ -41,7 +63,7 @@ export function PriceEditor({ rows }: { rows: PriceRow[] }) {
       setStatus((s) => ({ ...s, [row.variantId]: "error" }));
       return;
     }
-    if (priceThb === row.price) return;
+    if (priceThb === shownPrice(row)) return;
 
     setStatus((s) => ({ ...s, [row.variantId]: "saving" }));
 
@@ -49,7 +71,7 @@ export function PriceEditor({ rows }: { rows: PriceRow[] }) {
       const res = await fetch("/api/prices", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ variantId: row.variantId, condition: "NM", priceThb }),
+        body: JSON.stringify({ variantId: row.variantId, condition: grade, priceThb }),
       });
       if (!res.ok) throw new Error(await res.text());
 
@@ -63,6 +85,32 @@ export function PriceEditor({ rows }: { rows: PriceRow[] }) {
 
   return (
     <div className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="mr-1 font-mono text-[10.5px] uppercase tracking-[0.08em] text-ink-3">
+          ราคาที่กรอกคือ
+        </span>
+        {(["NM", "PSA10"] as Grade[]).map((value) => (
+          <button
+            key={value}
+            type="button"
+            onClick={() => switchGrade(value)}
+            aria-pressed={grade === value}
+            className={`rounded-[3px] border px-2.5 py-[3px] font-mono text-[10.5px] uppercase tracking-[0.06em] ${
+              grade === value
+                ? "border-accent bg-accent-soft text-accent"
+                : "border-line-strong text-ink-2 hover:border-accent hover:text-accent"
+            }`}
+          >
+            {GRADE_LABEL[value]}
+          </button>
+        ))}
+        {grade === "PSA10" && (
+          <span className="text-[12px] text-ink-3">
+            ระบบจะถอดเบี้ยเกรดออกแล้วเก็บเป็นราคาดิบให้เอง
+          </span>
+        )}
+      </div>
+
       <div className="overflow-x-auto rounded-lg border border-line bg-surface">
         <table className="w-full text-[13.5px]">
           <thead>
@@ -77,7 +125,7 @@ export function PriceEditor({ rows }: { rows: PriceRow[] }) {
                 เวอร์ชัน
               </th>
               <th className="px-3 py-2.5 text-right font-mono text-[10px] font-normal uppercase tracking-[0.07em] text-ink-3">
-                ราคา NM (บาท)
+                ราคา {GRADE_LABEL[grade]} (บาท)
               </th>
               <th className="px-3 py-2.5 text-left font-mono text-[10px] font-normal uppercase tracking-[0.07em] text-ink-3">
                 สถานะ
@@ -125,7 +173,7 @@ export function PriceEditor({ rows }: { rows: PriceRow[] }) {
                         }
                       }}
                       onBlur={() => void save(row)}
-                      aria-label={`ราคาของ ${row.cardName} ${row.variantLabel}`}
+                      aria-label={`ราคา ${GRADE_LABEL[grade]} ของ ${row.cardName} ${row.variantLabel}`}
                       className="w-28 rounded-[3px] border border-line-strong bg-surface-2 px-2 py-1 text-right font-mono tabular-nums focus:border-accent focus:bg-accent-soft"
                     />
                   </td>
@@ -170,5 +218,15 @@ export function PriceEditor({ rows }: { rows: PriceRow[] }) {
         )}
       </div>
     </div>
+  );
+}
+
+/** ค่าเริ่มต้นในช่องกรอก อ่านจากราคาปัจจุบันของเกรดที่เลือกอยู่ */
+function initialValues(rows: PriceRow[], grade: Grade): Record<string, string> {
+  return Object.fromEntries(
+    rows.map((row) => [
+      row.variantId,
+      (grade === "PSA10" ? row.psaPrice : row.price)?.toString() ?? "",
+    ]),
   );
 }

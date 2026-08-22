@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { createCard, createSet, deleteCard, updateCard } from "./repo";
+import { createCard, createSet, deleteCard, deleteSet, updateCard } from "./repo";
 import { VARIANT_LABEL, type Language, type VariantType } from "./types";
 
 export interface FormState {
@@ -119,4 +119,16 @@ export async function createSetAction(
 
   revalidateEverything();
   redirect(`/admin/cards?set=${encodeURIComponent(result.value.code)}`);
+}
+
+export async function deleteSetAction(form: FormData): Promise<void> {
+  const code = text(form, "code");
+
+  const result = deleteSet(code);
+  revalidateEverything();
+
+  const status = result.ok
+    ? `deleted=${encodeURIComponent(code)}&cards=${result.value.cards}`
+    : `error=${encodeURIComponent(result.error)}`;
+  redirect(`/admin/sets?${status}`);
 }

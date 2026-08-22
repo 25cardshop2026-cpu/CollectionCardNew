@@ -89,6 +89,7 @@ export default async function CardPage({
     )[0] ?? variants[0];
 
   const headlinePrice = headlineVariant ? getCurrentPrice(headlineVariant.id, "NM") : null;
+  const psaPrice = headlineVariant ? getCurrentPrice(headlineVariant.id, "PSA10") : null;
   const history = headlineVariant ? getHistory(headlineVariant.id) : [];
   const siblings = listCardsInSet(set.code)
     .filter((row) => row.card.id !== card.id)
@@ -104,7 +105,8 @@ export default async function CardPage({
         "@type": "AggregateOffer",
         priceCurrency: "THB",
         lowPrice: Math.round(headlinePrice.priceThb * 0.16),
-        highPrice: headlinePrice.priceThb,
+        // ขอบบนคือใบเกรด PSA 10 เพราะตารางราคารวมคอลัมน์นั้นแล้ว
+        highPrice: psaPrice?.priceThb ?? headlinePrice.priceThb,
         offerCount: variants.length * CONDITIONS.length,
       },
     }),
@@ -177,6 +179,20 @@ export default async function CardPage({
                   <span className="ml-1.5 text-[12px] text-ink-3">{t.card.per7d}</span>
                 </span>
               </div>
+              {/* ราคาการ์ดเกรดวางคู่ราคาการ์ดดิบเสมอ เพราะเป็นเลขที่คนสะสม
+                  เอาไปตัดสินใจว่าจะส่งเกรดหรือขายดิบ */}
+              {psaPrice && (
+                <div className="flex flex-wrap items-baseline gap-3 rounded-lg border border-accent-line bg-accent-soft px-3.5 py-2.5">
+                  <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-accent">
+                    {t.card.psaLabel}
+                  </span>
+                  <span className="neon-num font-mono text-[19px] font-medium tabular-nums">
+                    {formatBaht(psaPrice.priceThb, locale)}
+                  </span>
+                  <span className="text-[12px] text-ink-3">{t.card.psaNote}</span>
+                </div>
+              )}
+
               <span className="text-[12.5px] text-ink-3">
                 {t.card.updated} {formatAge(headlinePrice.updatedAt, t, locale)}
               </span>
@@ -207,7 +223,12 @@ export default async function CardPage({
                     {CONDITIONS.map((condition) => (
                       <th
                         key={condition}
-                        className="px-5 py-3.5 text-right font-mono text-[9.5px] font-normal uppercase tracking-[0.12em] text-ink-3"
+                        className={`whitespace-nowrap px-5 py-3.5 text-right font-mono text-[9.5px] font-normal uppercase tracking-[0.12em] ${
+                          // คอลัมน์การ์ดเกรดต้องอ่านออกทันทีว่าไม่ใช่สภาพการ์ดดิบ
+                          condition === "PSA10"
+                            ? "border-l border-accent-line bg-accent-soft text-accent"
+                            : "text-ink-3"
+                        }`}
                       >
                         {t.condition[condition]}
                       </th>
@@ -231,7 +252,11 @@ export default async function CardPage({
                       {prices.map((price, i) => (
                         <td
                           key={CONDITIONS[i]}
-                          className="whitespace-nowrap px-5 py-3 text-right font-mono tabular-nums text-ink-2"
+                          className={`whitespace-nowrap px-5 py-3 text-right font-mono tabular-nums ${
+                            CONDITIONS[i] === "PSA10"
+                              ? "border-l border-accent-line bg-accent-soft font-medium text-accent"
+                              : "text-ink-2"
+                          }`}
                         >
                           {price ? formatBaht(price.priceThb, locale) : "—"}
                         </td>

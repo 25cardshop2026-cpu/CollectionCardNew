@@ -131,8 +131,10 @@ export const en: Dictionary = {
     historyTitle: "90-day price history",
     historyLabel: (name: string) => `90-day price history chart for ${name}`,
     priceTableTitle: "Price by variant and condition",
+    psaLabel: "PSA 10",
+    psaNote: "graded gem mint",
     priceNote:
-      "Price attaches to a variant and a condition, never to the card alone. PSA and BGS graded copies trade as a separate market and are coming in a later phase.",
+      "Price attaches to a variant and a condition, never to the card alone. The PSA 10 column is a graded gem-mint copy, a separate market from raw cards: it is estimated from the raw price plus a per-card premium, floored at what grading costs to begin with. BGS is coming in a later phase.",
     siblings: (code: string) => `More from ${code}`,
     notEnoughData: "Not enough price data to draw a chart yet.",
     low: "Low",
@@ -172,6 +174,7 @@ export const en: Dictionary = {
   },
 
   condition: {
+    PSA10: "PSA 10",
     NM: "NM",
     LP: "LP",
     MP: "MP",

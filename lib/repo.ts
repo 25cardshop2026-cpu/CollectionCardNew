@@ -6,6 +6,8 @@ import {
   SETS as SEED_SETS,
   VARIANTS as SEED_VARIANTS,
   buildHistory,
+  nmToPsa10,
+  psa10ToNm,
   slugify,
 } from "./seed";
 import {
@@ -66,22 +68,29 @@ let cachedVersion = -1;
 
 function build(overrides: Overrides): Snapshot {
   const deleted = new Set(overrides.deletedCardIds);
+  const deletedSets = new Set(overrides.deletedSetCodes);
 
-  const sets = [...SEED_SETS, ...overrides.sets];
+  const sets = [...SEED_SETS, ...overrides.sets].filter((set) => !deletedSets.has(set.code));
 
+  // ลบชุดแล้วการ์ดในชุดต้องหายตามไปด้วย ไม่งั้นจะเหลือการ์ดที่ไม่มีชุดสังกัด
+  // แล้วหน้าเว็บจะพังตอนหาชื่อชุดของมัน
   const cards = [...SEED_CARDS, ...overrides.cards]
-    .filter((card) => !deleted.has(card.id))
+    .filter((card) => !deleted.has(card.id) && !deletedSets.has(card.setCode))
     .map((card) => {
       const edit = overrides.cardEdits[card.id];
       return edit ? { ...card, ...edit } : card;
     });
 
-  const variants = [...SEED_VARIANTS, ...overrides.variants].filter(
-    (variant) => !deleted.has(variant.cardId),
+  // เวอร์ชันกับราคาผูกกับการ์ดที่ยังอยู่เท่านั้น ตัดจากรายชื่อการ์ดจริงทีเดียว
+  // จะได้ครอบคลุมทั้งการ์ดที่ถูกลบตรง ๆ และการ์ดที่หายไปพร้อมชุด
+  const liveCardIds = new Set(cards.map((card) => card.id));
+
+  const variants = [...SEED_VARIANTS, ...overrides.variants].filter((variant) =>
+    liveCardIds.has(variant.cardId),
   );
 
-  const history = [...buildHistory(), ...overrides.pricePoints].filter(
-    (point) => !deleted.has(point.variantId.split(":")[0]),
+  const history = [...buildHistory(), ...overrides.pricePoints].filter((point) =>
+    liveCardIds.has(point.variantId.split(":")[0]),
   );
 
   const variantsByCard = new Map<string, Variant[]>();
@@ -139,6 +148,7 @@ function commit(mutate: (draft: Overrides) => void): boolean {
     cards: [...current.cards],
     variants: [...current.variants],
     cardEdits: { ...current.cardEdits },
+    deletedSetCodes: [...current.deletedSetCodes],
     deletedCardIds: [...current.deletedCardIds],
     pricePoints: [...current.pricePoints],
     version: current.version + 1,
@@ -166,7 +176,10 @@ function currentPrice(variantId: string, condition: Condition): PriceCurrent | n
   return {
     variantId,
     condition,
-    priceThb: Math.round(nm * CONDITION_MULTIPLIER[condition]),
+    priceThb:
+      condition === "PSA10"
+        ? nmToPsa10(nm, variantId)
+        : Math.round(nm * CONDITION_MULTIPLIER[condition]),
     change7d: change7d === null ? null : Math.round(change7d * 10) / 10,
     updatedAt: latest.recordedAt,
   };
@@ -305,6 +318,8 @@ export interface AdminPriceRow {
   card: Card;
   variant: Variant;
   current: PriceCurrent | null;
+  /** ราคาใบเกรด PSA 10 ของ variant เดียวกัน คำนวณจากราคาดิบ */
+  psa: PriceCurrent | null;
   staleDays: number | null;
 }
 
@@ -317,10 +332,11 @@ export function listAdminPriceRows(setCode: string): AdminPriceRow[] {
     .flatMap((card) =>
       getVariants(card.id).map((variant) => {
         const current = currentPrice(variant.id, "NM");
+        const psa = currentPrice(variant.id, "PSA10");
         const staleDays = current
           ? Math.floor((now - new Date(current.updatedAt).getTime()) / 86400000)
           : null;
-        return { card, variant, current, staleDays };
+        return { card, variant, current, psa, staleDays };
       }),
     );
 }
@@ -381,7 +397,11 @@ export function setPrice(
   if (!Number.isFinite(priceThb) || priceThb <= 0) return null;
 
   // ราคาที่กรอกอิงสภาพใดก็ได้ แต่เก็บเป็นฐาน NM เพื่อให้เทียบกันได้ทั้งระบบ
-  const nmEquivalent = Math.round(priceThb / CONDITION_MULTIPLIER[condition]);
+  const nmEquivalent =
+    condition === "PSA10"
+      ? psa10ToNm(priceThb, variantId)
+      : Math.round(priceThb / CONDITION_MULTIPLIER[condition]);
+  if (nmEquivalent <= 0) return null;
 
   const ok = commit((draft) => {
     draft.pricePoints.push({
@@ -430,6 +450,27 @@ export function createSet(input: NewSetInput): Result<CardSet> {
     return { ok: false, error: NOT_WRITABLE };
   }
   return { ok: true, value: set };
+}
+
+/**
+ * ลบทั้งชุด — การ์ด เวอร์ชัน และราคาทั้งหมดในชุดหายตามไปด้วย
+ * คืนจำนวนการ์ดที่หายไปเพื่อให้หน้าแดชบอร์ดบอกผู้ใช้ได้ว่าลบอะไรไปบ้าง
+ */
+export function deleteSet(code: string): Result<{ cards: number }> {
+  const set = snap().setByCode.get(code);
+  if (!set) return { ok: false, error: "ไม่พบชุดนี้" };
+
+  const cards = snap().cards.filter((card) => card.setCode === code).length;
+
+  const ok = commit((draft) => {
+    if (!draft.deletedSetCodes.includes(code)) draft.deletedSetCodes.push(code);
+    // ชุดที่เพิ่งสร้างเองในแดชบอร์ดให้เอาออกจากรายการที่เพิ่มด้วย
+    // ไม่งั้นไฟล์ส่วนต่างจะบวมขึ้นเรื่อย ๆ ด้วยชุดที่ทั้งเพิ่มและลบ
+    draft.sets = draft.sets.filter((s) => s.code !== code);
+  });
+
+  if (!ok) return { ok: false, error: NOT_WRITABLE };
+  return { ok: true, value: { cards } };
 }
 
 export interface NewCardInput {

@@ -23,6 +23,7 @@ export interface Overrides {
   cards: Card[];
   variants: Variant[];
   cardEdits: Record<string, Partial<Card>>;
+  deletedSetCodes: string[];
   deletedCardIds: string[];
   pricePoints: PricePoint[];
   /** เพิ่มขึ้นทุกครั้งที่บันทึก ใช้ให้ repo รู้ว่าต้องสร้างดัชนีใหม่ */
@@ -34,6 +35,7 @@ export const EMPTY_OVERRIDES: Overrides = {
   cards: [],
   variants: [],
   cardEdits: {},
+  deletedSetCodes: [],
   deletedCardIds: [],
   pricePoints: [],
   version: 0,

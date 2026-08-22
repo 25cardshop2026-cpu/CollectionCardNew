@@ -1,8 +1,16 @@
 export type Language = "JP" | "EN";
 
-export type Condition = "NM" | "LP" | "MP" | "HP" | "DMG";
+/**
+ * แกนคุณภาพที่ราคาผูกอยู่
+ *
+ * NM ถึง DMG คือสภาพของการ์ดดิบ ส่วน PSA10 คือใบที่ส่งเกรดแล้วได้ 10 เต็ม
+ * สองอย่างนี้เป็นคนละตลาดกัน แต่อยู่แกนเดียวกันเพราะราคาหนึ่งแถวต้องระบุ
+ * ได้ค่าเดียวว่าหมายถึงใบสภาพไหน
+ */
+export type Condition = "PSA10" | "NM" | "LP" | "MP" | "HP" | "DMG";
 
-export const CONDITIONS: Condition[] = ["NM", "LP", "MP", "HP", "DMG"];
+/** เรียงจากดีสุดไปแย่สุด ลำดับนี้คือลำดับคอลัมน์ในตารางราคา */
+export const CONDITIONS: Condition[] = ["PSA10", "NM", "LP", "MP", "HP", "DMG"];
 
 export type VariantType =
   | "normal"

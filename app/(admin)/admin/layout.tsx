@@ -32,6 +32,9 @@ export default function AdminLayout({
               <Link href="/admin" className="hover:text-ink">
                 ภาพรวม
               </Link>
+              <Link href="/admin/sets" className="hover:text-ink">
+                จัดการชุด
+              </Link>
               <Link href="/admin/cards" className="hover:text-ink">
                 จัดการการ์ด
               </Link>

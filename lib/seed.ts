@@ -157,14 +157,53 @@ const SEED_CARDS: Record<string, SeedCard[]> = {
   ],
 };
 
-/** ตัวคูณราคาตามสภาพการ์ด เทียบกับ NM */
+/**
+ * ตัวคูณราคาตามสภาพการ์ด เทียบกับ NM
+ *
+ * PSA10 ไม่ได้ใช้ค่าคงที่ตัวนี้ตรง ๆ — ดู nmToPsa10() ข้างล่าง
+ * ค่าที่ใส่ไว้เป็นแค่ค่ากลางของช่วง เผื่อโค้ดที่อ่านตารางนี้แบบตรงไปตรงมา
+ */
 export const CONDITION_MULTIPLIER: Record<Condition, number> = {
+  PSA10: 4.6,
   NM: 1,
   LP: 0.74,
   MP: 0.52,
   HP: 0.33,
   DMG: 0.16,
 };
+
+/**
+ * ค่าส่งเกรด (ค่าบริการ + ค่าส่งไปกลับ + ประกัน) คิดหยาบ ๆ ต่อใบ
+ * ใช้เป็นพื้นราคาของการ์ดเกรด เพราะไม่มีใครขายใบที่ส่งเกรดแล้ว
+ * ถูกกว่าต้นทุนที่จ่ายไป ต่อให้การ์ดดิบจะราคาไม่กี่ร้อยก็ตาม
+ */
+export const GRADING_COST_THB = 1200;
+
+/**
+ * เบี้ยของ PSA 10 เทียบกับการ์ดดิบสภาพ NM
+ *
+ * ของจริงเบี้ยนี้ไม่คงที่ ขึ้นกับว่าการ์ดใบนั้นผ่านเกรด 10 ยากแค่ไหน
+ * (ขอบซีน ศูนย์กลางภาพ ฟอยล์เป็นรอยง่าย) เราจึงสุ่มแบบ deterministic
+ * จาก id ของ variant ให้แต่ละใบมีเบี้ยของตัวเองในช่วง 3.4–6.8 เท่า
+ * ไม่ใช่คูณเลขเดียวกันทั้งเว็บซึ่งจะดูปลอมทันทีเมื่อเทียบหลายใบ
+ */
+export function psa10Premium(variantId: string): number {
+  const rand = makeRng(hashString(`psa10:${variantId}`));
+  return 3.4 + rand() * 3.4;
+}
+
+export function nmToPsa10(nmPrice: number, variantId: string): number {
+  const premium = psa10Premium(variantId);
+  return Math.round(Math.max(nmPrice * premium, nmPrice + GRADING_COST_THB));
+}
+
+/** ทางกลับของ nmToPsa10 ใช้ตอนแอดมินกรอกราคามาเป็นราคาการ์ดเกรด */
+export function psa10ToNm(psaPrice: number, variantId: string): number {
+  const premium = psa10Premium(variantId);
+  // จุดที่เบี้ยแบบคูณแซงพื้นค่าส่งเกรดพอดี — ต่ำกว่านี้ต้องถอดด้วยการลบ
+  const knee = (GRADING_COST_THB / (premium - 1)) * premium;
+  return Math.round(psaPrice >= knee ? psaPrice / premium : psaPrice - GRADING_COST_THB);
+}
 
 /** ตัวคูณราคาตาม variant เทียบกับ normal */
 const VARIANT_MULTIPLIER: Record<VariantType, number> = {
