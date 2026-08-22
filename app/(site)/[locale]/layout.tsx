@@ -89,9 +89,10 @@ export default async function SiteLayout({
 
               <div className="ml-auto flex items-center gap-2.5">
                 <LocaleSwitcher current={locale} />
+                {/* จอแคบใช้ลิงก์ในแถวเมนูข้างล่างแทน จะได้ไม่ซ้ำกัน */}
                 <Link
                   href="/admin"
-                  className="hidden rounded-full border border-line-strong px-3.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 transition-colors hover:border-accent hover:text-accent sm:inline-block"
+                  className="hidden rounded-full border border-line-strong px-3.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 transition-colors hover:border-accent hover:text-accent lg:inline-block"
                 >
                   {t.nav.dashboard}
                 </Link>
@@ -100,6 +101,27 @@ export default async function SiteLayout({
                 </Link>
               </div>
             </div>
+            {/* แถวเมนูของจอแคบ — เมนูหลักถูกซ่อนต่ำกว่า lg ถ้าไม่มีแถวนี้
+                คนใช้มือถือจะเข้าหน้าอื่นหรือแดชบอร์ดไม่ได้เลยนอกจากพิมพ์ URL เอง
+                เลื่อนแนวนอนได้ ไม่ต้องมีปุ่มแฮมเบอร์เกอร์ที่ต้องใช้ JS */}
+            <nav className="flex items-center gap-2 overflow-x-auto px-5 pb-2.5 [scrollbar-width:none] sm:px-8 lg:hidden [&::-webkit-scrollbar]:hidden">
+              {nav.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="shrink-0 rounded-full border border-line-strong px-3 py-1 text-[12.5px] whitespace-nowrap text-ink-2 transition-colors hover:border-accent hover:text-accent"
+                >
+                  {item.label}
+                </Link>
+              ))}
+              <Link
+                href="/admin"
+                className="shrink-0 rounded-full border border-accent-line px-3 py-1 font-mono text-[10.5px] whitespace-nowrap text-accent uppercase"
+              >
+                {t.nav.dashboard}
+              </Link>
+            </nav>
+
             <div className="accent-rule h-px" aria-hidden="true" />
           </header>
 
@@ -123,6 +145,9 @@ export default async function SiteLayout({
                       {item.label}
                     </Link>
                   ))}
+                  <Link href="/admin" className="mt-1 text-ink-3 hover:text-accent">
+                    {t.nav.dashboard}
+                  </Link>
                 </nav>
               </div>
               <div className="hairline my-8" />
