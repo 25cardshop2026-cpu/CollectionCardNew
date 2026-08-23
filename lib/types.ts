@@ -57,6 +57,8 @@ export interface Card {
   rarity: string;
   cardType: string;
   color: string;
+  /** URL รูปที่แอดมินอัปโหลดเอง ไม่มี = ใช้ผิวฟอยล์แทนรูป */
+  imageUrl?: string;
 }
 
 export interface Variant {

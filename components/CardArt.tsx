@@ -20,6 +20,18 @@ export function CardArt({
 
   return (
     <div className={`card-face ${TIER_SURFACE[tier]} aspect-[5/7] ${className}`}>
+      {/* มีรูปที่อัปโหลดไว้ก็ใช้รูปจริง ผิวฟอยล์ถอยไปเป็นกรอบกับเงาแทน
+          ใช้ img ธรรมดาเพราะรูปมาจาก API ของเราเองที่ตั้งแคชถาวรไว้แล้ว */}
+      {card.imageUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={card.imageUrl}
+          alt={card.nameEn}
+          loading="lazy"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+      )}
+
       {/* กรอบในแบบการ์ดจริง */}
       <div className="absolute inset-[6px] rounded-[5px] border border-white/10 mix-blend-overlay" />
 

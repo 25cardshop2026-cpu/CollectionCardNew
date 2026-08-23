@@ -735,6 +735,30 @@ export async function updateCard(
   return { ok: true, value: { ...card, ...clean } };
 }
 
+/**
+ * ผูกรูปที่อัปโหลดแล้วเข้ากับการ์ด (หรือถอดออกเมื่อส่ง null)
+ *
+ * เก็บเป็น cardEdits เหมือนการแก้ชื่อ รูปจึงหายไปพร้อมการ์ดถ้าการ์ดถูกลบ
+ * และย้ายที่เก็บข้อมูลทีเดียวก็ตามไปทั้งชุด
+ */
+export async function setCardImage(id: string, imageUrl: string | null): Promise<Result<Card>> {
+  const card = snap().cardById.get(id);
+  if (!card) return { ok: false, error: "ไม่พบการ์ดนี้" };
+
+  const ok = await commit((draft) => {
+    const edit = { ...draft.cardEdits[id] };
+    if (imageUrl) {
+      edit.imageUrl = imageUrl;
+    } else {
+      delete edit.imageUrl;
+    }
+    draft.cardEdits[id] = edit;
+  });
+
+  if (!ok) return { ok: false, error: NOT_WRITABLE };
+  return { ok: true, value: { ...card, imageUrl: imageUrl ?? undefined } };
+}
+
 export async function deleteCard(id: string): Promise<Result<true>> {
   if (!snap().cardById.has(id)) return { ok: false, error: "ไม่พบการ์ดนี้" };
 

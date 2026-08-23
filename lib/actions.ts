@@ -2,7 +2,16 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { createCard, createSet, deleteCard, deleteSet, loadState, updateCard } from "./repo";
+import { checkImage, deleteCardImage, saveCardImage } from "./images";
+import {
+  createCard,
+  createSet,
+  deleteCard,
+  deleteSet,
+  loadState,
+  setCardImage,
+  updateCard,
+} from "./repo";
 import { VARIANT_LABEL, type Language, type VariantType } from "./types";
 
 export interface FormState {
@@ -141,4 +150,48 @@ export async function deleteSetAction(form: FormData): Promise<void> {
     ? `deleted=${encodeURIComponent(code)}&cards=${result.value.cards}`
     : `error=${encodeURIComponent(result.error)}`;
   redirect(`/admin/sets?${status}`);
+}
+
+/**
+ * อัปโหลดรูปการ์ด — ไฟล์วิ่งผ่าน server action ตรงเข้า Blob
+ * ไม่ต้องมี API upload แยก และไม่ต้องเปิดที่เก็บให้เขียนจากเบราว์เซอร์
+ */
+export async function uploadCardImageAction(form: FormData): Promise<void> {
+  const id = text(form, "id");
+  const file = form.get("image");
+
+  if (!(file instanceof File)) {
+    redirect(`/admin/cards/${encodeURIComponent(id)}?error=${encodeURIComponent("ไม่พบไฟล์รูป")}`);
+  }
+
+  const check = checkImage(file);
+  if (!check.ok) {
+    redirect(`/admin/cards/${encodeURIComponent(id)}?error=${encodeURIComponent(check.error ?? "")}`);
+  }
+
+  await loadState();
+  const url = await saveCardImage(id, file);
+  if (!url) {
+    redirect(
+      `/admin/cards/${encodeURIComponent(id)}?error=${encodeURIComponent("อัปโหลดไม่สำเร็จ ลองใหม่อีกครั้ง")}`,
+    );
+  }
+
+  const result = await setCardImage(id, url);
+  revalidateEverything();
+
+  const status = result.ok ? "uploaded=1" : `error=${encodeURIComponent(result.error)}`;
+  redirect(`/admin/cards/${encodeURIComponent(id)}?${status}`);
+}
+
+export async function removeCardImageAction(form: FormData): Promise<void> {
+  const id = text(form, "id");
+
+  await loadState();
+  await deleteCardImage(id);
+  const result = await setCardImage(id, null);
+  revalidateEverything();
+
+  const status = result.ok ? "removed=1" : `error=${encodeURIComponent(result.error)}`;
+  redirect(`/admin/cards/${encodeURIComponent(id)}?${status}`);
 }
