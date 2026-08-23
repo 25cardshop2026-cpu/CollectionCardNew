@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { NavLink } from "@/components/NavLink";
 import { fontVariables } from "@/lib/fonts";
 import { STORAGE_KIND } from "@/lib/repo";
 import "../../globals.css";
@@ -29,18 +30,24 @@ export default function AdminLayout({
               แดชบอร์ด
             </h1>
             <nav className="flex flex-wrap gap-4 text-[13.5px] text-ink-2">
-              <Link href="/admin" className="hover:text-ink">
-                ภาพรวม
-              </Link>
-              <Link href="/admin/sets" className="hover:text-ink">
-                จัดการชุด
-              </Link>
-              <Link href="/admin/cards" className="hover:text-ink">
-                จัดการการ์ด
-              </Link>
-              <Link href="/admin/prices" className="hover:text-ink">
-                อัปเดตราคา
-              </Link>
+              {[
+                // ภาพรวมต้องเทียบแบบตรงตัว ไม่งั้นมันจะติดสีค้างทุกหน้าในแดชบอร์ด
+                { href: "/admin", label: "ภาพรวม", exact: true },
+                { href: "/admin/sets", label: "จัดการชุด" },
+                { href: "/admin/cards", label: "จัดการการ์ด" },
+                { href: "/admin/prices", label: "อัปเดตราคา" },
+              ].map((item) => (
+                <NavLink
+                  key={item.href}
+                  href={item.href}
+                  exact={item.exact}
+                  className="border-b-2 pb-0.5 transition-colors"
+                  activeClassName="border-accent font-bold text-accent"
+                  inactiveClassName="border-transparent hover:text-ink"
+                >
+                  {item.label}
+                </NavLink>
+              ))}
             </nav>
             <Link href="/th" className="ml-auto text-[13px] text-ink-3 hover:text-accent">
               ← กลับหน้าเว็บ

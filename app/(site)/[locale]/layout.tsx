@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
+import { NavLink } from "@/components/NavLink";
 import { SearchBox } from "@/components/SearchBox";
 import { fontVariables } from "@/lib/fonts";
 import { getDictionary } from "@/lib/i18n";
@@ -49,8 +50,9 @@ export default async function SiteLayout({
   const t = getDictionary(locale);
   const p = (path: string) => localePath(locale, path);
 
+  // หน้าแรกต้องเทียบแบบตรงตัว ไม่งั้นจะติดสีค้างทุกหน้าเพราะทุก path ขึ้นต้นด้วย /th
   const nav = [
-    { href: p("/"), label: t.nav.home },
+    { href: p("/"), label: t.nav.home, exact: true },
     { href: p("/browse"), label: t.nav.browse },
     { href: p("/g/one-piece"), label: "One Piece" },
     { href: p("/g/pokemon"), label: "Pokémon" },
@@ -78,13 +80,15 @@ export default async function SiteLayout({
 
               <nav className="hidden items-center gap-6 text-[14px] text-ink-2 lg:flex">
                 {nav.map((item) => (
-                  <Link
+                  <NavLink
                     key={item.href}
                     href={item.href}
+                    exact={item.exact}
                     className="transition-colors hover:text-accent"
+                    activeClassName="font-semibold text-accent [text-shadow:0_0_14px_rgba(62,231,255,0.5)]"
                   >
                     {item.label}
-                  </Link>
+                  </NavLink>
                 ))}
               </nav>
 
@@ -117,13 +121,16 @@ export default async function SiteLayout({
                 เลื่อนแนวนอนได้ ไม่ต้องมีปุ่มแฮมเบอร์เกอร์ที่ต้องใช้ JS */}
             <nav className="flex items-center gap-2 overflow-x-auto px-5 pb-2.5 [scrollbar-width:none] sm:px-8 lg:hidden [&::-webkit-scrollbar]:hidden">
               {nav.map((item) => (
-                <Link
+                <NavLink
                   key={item.href}
                   href={item.href}
-                  className="shrink-0 rounded-full border border-line-strong px-3 py-1 text-[12.5px] whitespace-nowrap text-ink-2 transition-colors hover:border-accent hover:text-accent"
+                  exact={item.exact}
+                  className="shrink-0 rounded-full border px-3 py-1 text-[12.5px] whitespace-nowrap transition-colors"
+                  activeClassName="border-accent bg-accent-soft font-semibold text-accent"
+                  inactiveClassName="border-line-strong text-ink-2 hover:border-accent hover:text-accent"
                 >
                   {item.label}
-                </Link>
+                </NavLink>
               ))}
               <Link
                 href={p("/search")}
