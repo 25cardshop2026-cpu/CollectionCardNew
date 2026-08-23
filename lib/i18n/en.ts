@@ -36,7 +36,7 @@ export const en: Dictionary = {
 
     statCards: "Cards in the database",
     statVariants: "Separately priced variants",
-    statSets: "Sets across 2 games",
+    statSets: "Sets in the database",
     statHistory: "Days of price history",
 
     featuresEyebrow: "What works today",

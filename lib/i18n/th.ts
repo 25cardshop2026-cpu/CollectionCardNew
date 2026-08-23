@@ -40,7 +40,7 @@ export const th = {
 
     statCards: "การ์ดในฐานข้อมูล",
     statVariants: "เวอร์ชันที่แยกราคา",
-    statSets: "ชุดจาก 2 เกม",
+    statSets: "ชุดการ์ดในระบบ",
     statHistory: "วันของราคาย้อนหลัง",
 
     featuresEyebrow: "สิ่งที่ใช้งานได้แล้ววันนี้",

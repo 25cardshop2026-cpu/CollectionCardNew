@@ -254,14 +254,27 @@ export function getGame(slug: string): Game | undefined {
   return GAMES.find((g) => g.slug === slug);
 }
 
+/**
+ * ลำดับชุดที่คนอ่านคาดหวัง: บูสเตอร์หลัก OP-01 ถึง OP-17 เรียงจากเก่าไปใหม่
+ * ตามด้วย EB แล้วค่อย PRB — ไม่ได้เรียงตามวันวางจำหน่าย เพราะชุดเสริม
+ * ออกสลับกับชุดหลักตลอด ถ้าเรียงตามวันจะกระจายแทรกกันจนหาชุดที่ต้องการไม่เจอ
+ */
+const SET_GROUP: Record<string, number> = { OP: 0, EB: 1, PRB: 2 };
+
+function setOrder(a: CardSet, b: CardSet): number {
+  const groupOf = (code: string) => SET_GROUP[code.split("-")[0]] ?? 9;
+  const diff = groupOf(a.code) - groupOf(b.code);
+  return diff !== 0 ? diff : a.code.localeCompare(b.code, undefined, { numeric: true });
+}
+
 export function listSets(gameSlug: string): CardSet[] {
   return snap()
     .sets.filter((s) => s.gameSlug === gameSlug)
-    .sort((a, b) => b.releaseDate.localeCompare(a.releaseDate));
+    .sort(setOrder);
 }
 
 export function listAllSets(): CardSet[] {
-  return [...snap().sets].sort((a, b) => b.releaseDate.localeCompare(a.releaseDate));
+  return [...snap().sets].sort(setOrder);
 }
 
 export function getSet(code: string): CardSet | undefined {

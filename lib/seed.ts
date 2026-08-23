@@ -16,7 +16,8 @@ import type {
  * แล้วเก็บไว้ที่ data/onepiece-catalog.json — เลขการ์ด ชื่อ ความหายาก
  * ประเภท และสี เป็นข้อมูลจริงทั้งหมด
  *
- * Pokémon: ยังเป็นข้อมูลตัวอย่างที่เขียนมือ รอหาแหล่งข้อมูลทางการต่อไป
+ * Pokémon: ยังไม่มีข้อมูล — ของเดิมเป็นการ์ดที่แต่งขึ้นจึงเอาออกไปแล้ว
+ * รอดึงจากแหล่งทางการเหมือนที่ทำกับ One Piece
  *
  * ราคาทุกใบเป็นราคาสมมติที่สร้างจากความหายาก ไม่ใช่ราคาตลาดจริง
  * จนกว่าจะมีคนกรอกราคาจริงทับผ่านแดชบอร์ด (ดู lib/repo.ts)
@@ -102,7 +103,7 @@ function nameKey(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
-/** LEADER -> Leader ให้เข้ากับข้อมูลฝั่งโปเกมอนที่เขียนมือไว้ */
+/** LEADER -> Leader อ่านง่ายกว่าตัวพิมพ์ใหญ่ทั้งคำเวลาแสดงบนหน้าเว็บ */
 function titleCase(value: string): string {
   return value
     .toLowerCase()
@@ -131,79 +132,6 @@ const RARITY_BASE: Record<string, number> = {
   L: 90,
   P: 120,
   "SP CARD": 900,
-};
-
-// ---------------- Pokémon (ข้อมูลตัวอย่างเขียนมือ) ----------------
-
-const POKEMON_SETS: CardSet[] = [
-  {
-    code: "SV8a",
-    gameSlug: "pokemon",
-    nameTh: "เทศกาลเทระสตัล ex",
-    nameEn: "Terastal Festival ex",
-    language: "JP",
-    releaseDate: "2024-12-06",
-    totalCards: 187,
-  },
-  {
-    code: "SV4a",
-    gameSlug: "pokemon",
-    nameTh: "ขุมทรัพย์แวววาว ex",
-    nameEn: "Shiny Treasure ex",
-    language: "JP",
-    releaseDate: "2023-12-01",
-    totalCards: 259,
-  },
-  {
-    code: "SV1a",
-    gameSlug: "pokemon",
-    nameTh: "ทริปเปิลบีต",
-    nameEn: "Triplet Beat",
-    language: "JP",
-    releaseDate: "2023-03-10",
-    totalCards: 73,
-  },
-];
-
-/** [เลขการ์ด, ชื่ออังกฤษ, ชื่อไทย, rarity, ประเภท, สี, ราคาฐาน NM, variant พิเศษ] */
-type SeedCard = [
-  string,
-  string,
-  string,
-  string,
-  string,
-  string,
-  number,
-  VariantType[],
-];
-
-const POKEMON_CARDS: Record<string, SeedCard[]> = {
-  SV1a: [
-    ["SV1a-005", "Pikachu ex", "พิคาชู ex", "RR", "Pokémon ex", "ไฟฟ้า", 420, ["full_art"]],
-    ["SV1a-016", "Charizard", "ลิซาร์ดอน", "R", "Pokémon", "ไฟ", 310, []],
-    ["SV1a-062", "Mew ex", "มิว ex", "RR", "Pokémon ex", "พลังจิต", 780, ["full_art"]],
-    ["SV1a-071", "Professor's Research", "งานวิจัยของศาสตราจารย์", "SR", "Supporter", "ไม่มีสี", 540, []],
-    ["SV1a-073", "Iono", "นันโจ", "SAR", "Supporter", "ไม่มีสี", 5200, ["full_art"]],
-    ["SV1a-078", "Miriam", "มิริอาม", "SAR", "Supporter", "ไม่มีสี", 2900, ["full_art"]],
-    ["SV1a-080", "Clive", "ไคลฟ์", "SR", "Supporter", "ไม่มีสี", 460, []],
-    ["SV1a-081", "Nemona", "เนโมนา", "SAR", "Supporter", "ไม่มีสี", 3400, ["full_art"]],
-  ],
-  SV4a: [
-    ["SV4a-020", "Charizard ex", "ลิซาร์ดอน ex", "RR", "Pokémon ex", "ไฟ", 1650, ["full_art"]],
-    ["SV4a-090", "Mimikyu", "มิมิคคิว", "R", "Pokémon", "พลังจิต", 190, []],
-    ["SV4a-205", "Iono", "นันโจ", "SAR", "Supporter", "ไม่มีสี", 4100, ["full_art"]],
-    ["SV4a-236", "Mew ex", "มิว ex", "UR", "Pokémon ex", "พลังจิต", 2250, []],
-    ["SV4a-244", "Pikachu ex", "พิคาชู ex", "UR", "Pokémon ex", "ไฟฟ้า", 1980, []],
-    ["SV4a-259", "Terapagos", "เทระปาโกส", "AR", "Pokémon", "ไม่มีสี", 340, []],
-  ],
-  SV8a: [
-    ["SV8a-018", "Charizard ex", "ลิซาร์ดอน ex", "RR", "Pokémon ex", "ไฟ", 1420, ["full_art"]],
-    ["SV8a-064", "Gardevoir ex", "ซาไนต์ ex", "RR", "Pokémon ex", "พลังจิต", 890, []],
-    ["SV8a-141", "Eevee", "อีวุย", "AR", "Pokémon", "ไม่มีสี", 260, []],
-    ["SV8a-175", "Lillie", "ลิลี่", "SAR", "Supporter", "ไม่มีสี", 8900, ["full_art"]],
-    ["SV8a-182", "Nemona", "เนโมนา", "SAR", "Supporter", "ไม่มีสี", 3100, ["full_art"]],
-    ["SV8a-187", "Terapagos ex", "เทระปาโกส ex", "UR", "Pokémon ex", "ไม่มีสี", 2400, []],
-  ],
 };
 
 // ---------------- ราคา ----------------
@@ -315,7 +243,6 @@ export const SETS: CardSet[] = [
     releaseDate: set.releaseDate,
     totalCards: set.totalCards,
   })),
-  ...POKEMON_SETS,
 ];
 
 export const CARDS: Card[] = [];
@@ -358,39 +285,6 @@ for (const card of catalog.cards) {
   const base = RARITY_BASE[card.rarity.toUpperCase()] ?? 40;
   const rand = makeRng(hashString(`price:${card.number}`));
   BASE_PRICE.set(card.number, Math.round(base * (0.75 + rand() * 0.9)));
-}
-
-for (const [setCode, rows] of Object.entries(POKEMON_CARDS)) {
-  for (const [number, nameEn, nameTh, rarity, cardType, color, base, extras] of rows) {
-    CARDS.push({
-      id: number,
-      slug: `${slugify(number)}-${slugify(nameEn)}`,
-      setCode,
-      number,
-      nameTh,
-      nameEn,
-      rarity,
-      cardType,
-      color,
-    });
-
-    VARIANTS.push({
-      id: `${number}:normal`,
-      cardId: number,
-      variantType: "normal",
-      isFoil: false,
-    });
-    for (const extra of extras) {
-      VARIANTS.push({
-        id: `${number}:${extra}`,
-        cardId: number,
-        variantType: extra,
-        isFoil: true,
-      });
-    }
-
-    BASE_PRICE.set(number, base);
-  }
 }
 
 export function basePriceOf(variant: Variant): number {
