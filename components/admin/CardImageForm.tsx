@@ -1,13 +1,24 @@
+import { ImagePicker } from "@/components/admin/ImagePicker";
 import { removeCardImageAction, uploadCardImageAction } from "@/lib/actions";
 import type { Card } from "@/lib/types";
 
 /**
- * อัปโหลดรูปการ์ด — ฟอร์มธรรมดา ไม่ใช้ JavaScript
+ * อัปโหลดรูปการ์ด
  *
- * เลือกไฟล์แล้วกดอัปโหลด ไฟล์วิ่งผ่าน server action เข้าที่เก็บข้อมูลโดยตรง
+ * ตัวฟอร์มยังเป็นฟอร์มธรรมดาที่ส่งเข้า server action ตรง ๆ ไฟล์จึงวิ่งเข้า
+ * ที่เก็บข้อมูลโดยไม่ต้องมีเส้นทางอัปโหลดแยก ส่วนการวางด้วย Ctrl+V กับลากไฟล์
+ * มาวางเป็นของเพิ่มใน ImagePicker ที่ยัดไฟล์กลับเข้า input ตัวเดิม
+ *
  * รูปจะขึ้นบนหน้าเว็บสาธารณะทันทีที่บันทึกเสร็จ
  */
-export function CardImageForm({ card }: { card: Card }) {
+export function CardImageForm({
+  card,
+  returnTo,
+}: {
+  card: Card;
+  /** หน้าที่จะกลับไปหลังอัปหรือลบรูป — ใช้ตอนเรียกจากหน้าตั้งค่าหน้าแรก */
+  returnTo?: string;
+}) {
   return (
     <section className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -15,6 +26,7 @@ export function CardImageForm({ card }: { card: Card }) {
         {card.imageUrl && (
           <form action={removeCardImageAction}>
             <input type="hidden" name="id" value={card.id} />
+            {returnTo && <input type="hidden" name="returnTo" value={returnTo} />}
             <button
               type="submit"
               className="rounded-[3px] border border-down px-2 py-[3px] text-[12.5px] text-down hover:bg-down hover:text-bg"
@@ -44,14 +56,8 @@ export function CardImageForm({ card }: { card: Card }) {
 
         <form action={uploadCardImageAction} className="flex flex-1 flex-col gap-3">
           <input type="hidden" name="id" value={card.id} />
-          <input
-            type="file"
-            name="image"
-            accept="image/png,image/jpeg,image/webp,image/avif"
-            required
-            aria-label="เลือกไฟล์รูปการ์ด"
-            className="text-[13px] text-ink-2 file:mr-3 file:rounded-[3px] file:border file:border-line-strong file:bg-surface-2 file:px-3 file:py-1.5 file:text-[13px] file:text-ink hover:file:border-accent hover:file:text-accent"
-          />
+          {returnTo && <input type="hidden" name="returnTo" value={returnTo} />}
+          <ImagePicker name="image" />
           <p className="text-[12px] text-ink-3">
             PNG, JPEG, WebP หรือ AVIF ขนาดไม่เกิน 5 MB · สัดส่วนที่พอดีกับกรอบคือ 5:7
             เหมือนการ์ดจริง

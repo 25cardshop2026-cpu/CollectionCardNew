@@ -10,6 +10,7 @@ import {
   deleteSet,
   loadState,
   setCardImage,
+  setFeaturedCards,
   updateCard,
 } from "./repo";
 import { VARIANT_LABEL, type Language, type VariantType } from "./types";
@@ -153,6 +154,15 @@ export async function deleteSetAction(form: FormData): Promise<void> {
 }
 
 /**
+ * หน้าที่จะกลับไปหลังจัดการรูปเสร็จ
+ * รับเฉพาะ path ในแดชบอร์ด กัน redirect หลุดออกไปเว็บอื่นถ้ามีคนยัดค่ามาเอง
+ */
+function backTo(form: FormData, cardId: string): string {
+  const wanted = text(form, "returnTo");
+  if (wanted.startsWith("/admin/") && !wanted.startsWith("//")) return wanted;
+  return `/admin/cards/${encodeURIComponent(cardId)}`;
+}
+/**
  * อัปโหลดรูปการ์ด — ไฟล์วิ่งผ่าน server action ตรงเข้า Blob
  * ไม่ต้องมี API upload แยก และไม่ต้องเปิดที่เก็บให้เขียนจากเบราว์เซอร์
  */
@@ -161,19 +171,19 @@ export async function uploadCardImageAction(form: FormData): Promise<void> {
   const file = form.get("image");
 
   if (!(file instanceof File)) {
-    redirect(`/admin/cards/${encodeURIComponent(id)}?error=${encodeURIComponent("ไม่พบไฟล์รูป")}`);
+    redirect(`${backTo(form, id)}?error=${encodeURIComponent("ไม่พบไฟล์รูป")}`);
   }
 
   const check = checkImage(file);
   if (!check.ok) {
-    redirect(`/admin/cards/${encodeURIComponent(id)}?error=${encodeURIComponent(check.error ?? "")}`);
+    redirect(`${backTo(form, id)}?error=${encodeURIComponent(check.error ?? "")}`);
   }
 
   await loadState();
   const url = await saveCardImage(id, file);
   if (!url) {
     redirect(
-      `/admin/cards/${encodeURIComponent(id)}?error=${encodeURIComponent("อัปโหลดไม่สำเร็จ ลองใหม่อีกครั้ง")}`,
+      `${backTo(form, id)}?error=${encodeURIComponent("อัปโหลดไม่สำเร็จ ลองใหม่อีกครั้ง")}`,
     );
   }
 
@@ -181,7 +191,7 @@ export async function uploadCardImageAction(form: FormData): Promise<void> {
   revalidateEverything();
 
   const status = result.ok ? "uploaded=1" : `error=${encodeURIComponent(result.error)}`;
-  redirect(`/admin/cards/${encodeURIComponent(id)}?${status}`);
+  redirect(`${backTo(form, id)}?${status}`);
 }
 
 export async function removeCardImageAction(form: FormData): Promise<void> {
@@ -193,5 +203,23 @@ export async function removeCardImageAction(form: FormData): Promise<void> {
   revalidateEverything();
 
   const status = result.ok ? "removed=1" : `error=${encodeURIComponent(result.error)}`;
-  redirect(`/admin/cards/${encodeURIComponent(id)}?${status}`);
+  redirect(`${backTo(form, id)}?${status}`);
+}
+
+/** ปักหมุดการ์ดที่จะโชว์บนหน้าแรก — เว้นว่าง = ให้ระบบเลือกให้เอง */
+export async function setFeaturedCardsAction(
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  await loadState();
+
+  const ids = form
+    .getAll("cardId")
+    .filter((value): value is string => typeof value === "string");
+
+  const result = await setFeaturedCards(ids);
+  if (!result.ok) return { error: result.error };
+
+  revalidateEverything();
+  redirect("/admin/home?saved=1");
 }

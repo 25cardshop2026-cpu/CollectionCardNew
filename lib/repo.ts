@@ -196,6 +196,7 @@ async function commit(mutate: (draft: Overrides) => void): Promise<boolean> {
     variants: [...current.variants],
     cardEdits: { ...current.cardEdits },
     deletedSetCodes: [...current.deletedSetCodes],
+    featuredCardIds: [...current.featuredCardIds],
     deletedCardIds: [...current.deletedCardIds],
     pricePoints: [...current.pricePoints],
     version: current.version + 1,
@@ -335,6 +336,75 @@ export function listCardsInSet(setCode: string): CardWithPrice[] {
       }
       return { card, set, variants, headline };
     });
+}
+
+/** จำนวนการ์ดที่หน้าแรกโชว์ในกรอบพัด */
+export const FEATURED_SLOTS = 3;
+
+/**
+ * การ์ดที่โชว์บนหน้าแรก
+ *
+ * ถ้าปักหมุดไว้ก็ใช้ตามนั้น ไม่งั้นเลือกใบที่แพงที่สุดให้ และถ้ายังไม่มีราคา
+ * เลยก็หยิบใบแรก ๆ มาแทน เพราะ hero ที่ว่างเปล่าดูเหมือนเว็บพัง
+ */
+export function listFeaturedCards(): CardWithPrice[] {
+  const state = snap();
+  const pinned = loaded.overrides.featuredCardIds
+    .map((id) => cardWithPrice(state.cardById.get(id)))
+    .filter((row): row is CardWithPrice => row !== null);
+
+  if (pinned.length >= FEATURED_SLOTS) return pinned.slice(0, FEATURED_SLOTS);
+
+  const used = new Set(pinned.map((row) => row.card.id));
+  const rest = listAllSets()
+    .flatMap((set) => listCardsInSet(set.code))
+    .filter((row) => !used.has(row.card.id))
+    .sort((a, b) => (b.headline?.priceThb ?? 0) - (a.headline?.priceThb ?? 0));
+
+  return [...pinned, ...rest].slice(0, FEATURED_SLOTS);
+}
+
+/** id ที่ปักหมุดไว้จริง ๆ (ไม่รวมตัวที่ระบบเติมให้) — หน้าตั้งค่าใช้แสดงในช่องกรอก */
+export function getFeaturedCardIds(): string[] {
+  return [...loaded.overrides.featuredCardIds];
+}
+
+export async function setFeaturedCards(ids: string[]): Promise<Result<string[]>> {
+  const state = snap();
+  const clean: string[] = [];
+
+  for (const raw of ids) {
+    const id = raw.trim().toUpperCase();
+    if (!id) continue;
+    if (!state.cardById.has(id)) {
+      return { ok: false, error: `ไม่พบการ์ดเลข ${id}` };
+    }
+    if (!clean.includes(id)) clean.push(id);
+  }
+
+  const ok = await commit((draft) => {
+    draft.featuredCardIds = clean.slice(0, FEATURED_SLOTS);
+  });
+
+  if (!ok) return { ok: false, error: NOT_WRITABLE };
+  return { ok: true, value: clean };
+}
+
+/** ประกอบการ์ดหนึ่งใบให้อยู่ในรูปเดียวกับที่หน้าเว็บใช้ (มีชุดกับราคาติดมาด้วย) */
+function cardWithPrice(card: Card | undefined): CardWithPrice | null {
+  if (!card) return null;
+
+  const set = snap().setByCode.get(card.setCode);
+  if (!set) return null;
+
+  const variants = getVariants(card.id);
+  let headline: PriceCurrent | null = null;
+  for (const variant of variants) {
+    const price = currentPrice(variant.id, "NM");
+    if (price && (!headline || price.priceThb > headline.priceThb)) headline = price;
+  }
+
+  return { card, set, variants, headline };
 }
 
 /**

@@ -28,6 +28,8 @@ export interface Overrides {
   variants: Variant[];
   cardEdits: Record<string, Partial<Card>>;
   deletedSetCodes: string[];
+  /** การ์ดที่ปักหมุดให้โชว์บนหน้าแรก ว่าง = ให้ระบบเลือกให้เอง */
+  featuredCardIds: string[];
   deletedCardIds: string[];
   pricePoints: PricePoint[];
   /** เพิ่มขึ้นทุกครั้งที่บันทึก ใช้ให้ repo รู้ว่าต้องสร้างดัชนีใหม่ */
@@ -40,6 +42,7 @@ export const EMPTY_OVERRIDES: Overrides = {
   variants: [],
   cardEdits: {},
   deletedSetCodes: [],
+  featuredCardIds: [],
   deletedCardIds: [],
   pricePoints: [],
   version: 0,

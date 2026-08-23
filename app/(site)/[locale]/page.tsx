@@ -5,7 +5,7 @@ import { Chip, PriceTag } from "@/components/Chip";
 import { formatBaht, formatNumber } from "@/lib/format";
 import { getDictionary } from "@/lib/i18n";
 import { isLocale, localePath } from "@/lib/i18n/config";
-import { getAdminStats, listAllSets, listCardsInSet, listMovers, loadState } from "@/lib/repo";
+import { getAdminStats, listFeaturedCards, listMovers, loadState } from "@/lib/repo";
 import { HISTORY_DAYS } from "@/lib/seed";
 
 export const dynamic = "force-dynamic";
@@ -23,12 +23,8 @@ export default async function LandingPage({
   const p = (path: string) => localePath(locale, path);
   const stats = getAdminStats();
 
-  // การ์ดแพงสุดสามใบ ถ้ายังไม่มีใครกรอกราคาก็หยิบสามใบแรกมาโชว์แทน
-  // เพราะ hero ที่ไม่มีการ์ดเลยดูเหมือนเว็บพัง ทั้งที่แค่ยังไม่มีราคา
-  const showcase = listAllSets()
-    .flatMap((set) => listCardsInSet(set.code))
-    .sort((a, b) => (b.headline?.priceThb ?? 0) - (a.headline?.priceThb ?? 0))
-    .slice(0, 3);
+  // การ์ดที่แอดมินปักหมุดไว้ในหน้าตั้งค่าหน้าแรก ถ้าไม่ได้ปักไว้ repo จะเลือกให้เอง
+  const showcase = listFeaturedCards();
 
   const movers = listMovers(3);
 

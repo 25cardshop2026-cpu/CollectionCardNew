@@ -33,6 +33,7 @@ export default function AdminLayout({
               {[
                 // ภาพรวมต้องเทียบแบบตรงตัว ไม่งั้นมันจะติดสีค้างทุกหน้าในแดชบอร์ด
                 { href: "/admin", label: "ภาพรวม", exact: true },
+                { href: "/admin/home", label: "ตั้งค่าหน้าแรก" },
                 { href: "/admin/sets", label: "จัดการชุด" },
                 { href: "/admin/cards", label: "จัดการการ์ด" },
                 { href: "/admin/prices", label: "อัปเดตราคา" },
