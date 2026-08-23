@@ -210,8 +210,15 @@ export default async function CardPage({
 
               <div className="grid gap-4 sm:grid-cols-2">
                 {CHANNELS.map((channel) => {
-                  const raw = getChannelPrice(headlineVariant.id, "NM", channel);
-                  const graded = getChannelPrice(headlineVariant.id, "PSA10", channel);
+                  // ไล่ทุกเวอร์ชันของการ์ด ไม่ใช่แค่ตัวที่แพงที่สุด
+                  // เพราะคนกรอกราคาให้เวอร์ชันไหนก็ได้ ถ้าดูแค่ตัวเดียวราคาที่กรอกจะหาย
+                  const rows = variants
+                    .map((variant) => ({
+                      variant,
+                      raw: getChannelPrice(variant.id, "NM", channel),
+                      graded: getChannelPrice(variant.id, "PSA10", channel),
+                    }))
+                    .filter((row) => row.raw !== null);
 
                   return (
                     <div key={channel} className="vitrine hud flex flex-col gap-3 p-5">
@@ -219,35 +226,46 @@ export default async function CardPage({
                         {t.channel[channel]}
                       </span>
 
-                      {raw ? (
-                        <div className="flex flex-col gap-2">
-                          <div className="flex items-baseline justify-between gap-3">
-                            <span className="text-[12.5px] text-ink-3">{t.card.conditionNm}</span>
-                            <PriceTag
-                              priceThb={raw.priceThb}
-                              change7d={raw.change7d}
-                              locale={locale}
-                            />
-                          </div>
-                          <div className="flex items-baseline justify-between gap-3">
-                            <span className="text-[12.5px] text-accent">
-                              {t.card.psaLabel}
-                              {/* ช่องนี้คำนวณจากราคาดิบของช่องทางนั้น ไม่ใช่ราคาที่เห็นบนเว็บนั้นจริง ๆ */}
-                              <span className="ml-1.5 text-[11px] text-ink-3">
-                                {t.channel.estimated}
-                              </span>
-                            </span>
-                            <PriceTag
-                              priceThb={graded?.priceThb ?? null}
-                              locale={locale}
-                            />
-                          </div>
-                          <span className="text-[11.5px] text-ink-3">
-                            {t.card.updated} {formatAge(raw.updatedAt, t, locale)}
-                          </span>
-                        </div>
-                      ) : (
+                      {rows.length === 0 ? (
                         <span className="text-[13px] text-ink-3">{t.channel.empty}</span>
+                      ) : (
+                        rows.map(({ variant, raw, graded }) => (
+                          <div
+                            key={variant.id}
+                            className="flex flex-col gap-1.5 border-t border-line pt-3 first-of-type:border-0 first-of-type:pt-0"
+                          >
+                            <div className="flex items-baseline justify-between gap-3">
+                              <span className="text-[13px]">
+                                {t.variant[variant.variantType]}
+                                <span className="ml-1.5 text-[11.5px] text-ink-3">
+                                  {t.card.conditionNm}
+                                </span>
+                              </span>
+                              <PriceTag
+                                priceThb={raw!.priceThb}
+                                change7d={raw!.change7d}
+                                locale={locale}
+                              />
+                            </div>
+                            <div className="flex items-baseline justify-between gap-3">
+                              <span className="text-[12.5px] text-accent">
+                                {t.card.psaLabel}
+                                {/* คำนวณจากราคาดิบของช่องทางนั้น ไม่ใช่ราคาที่เห็นบนเว็บนั้นจริง ๆ */}
+                                <span className="ml-1.5 text-[11px] text-ink-3">
+                                  {t.channel.estimated}
+                                </span>
+                              </span>
+                              <PriceTag
+                                priceThb={graded?.priceThb ?? null}
+                                size="sm"
+                                locale={locale}
+                              />
+                            </div>
+                            <span className="text-[11.5px] text-ink-3">
+                              {t.card.updated} {formatAge(raw!.updatedAt, t, locale)}
+                            </span>
+                          </div>
+                        ))
                       )}
                     </div>
                   );
