@@ -30,7 +30,9 @@ export function checkImage(file: File): ImageCheck {
 }
 
 function pathOf(cardId: string): string {
-  return `cards/${cardId}`;
+  // id ของการ์ดมีเครื่องหมาย : คั่นแบบพิมพ์ (OP13-118:normal) ซึ่งใช้เป็น
+  // ชื่อไฟล์ตรง ๆ ไม่ได้ จึงแทนด้วย __ ให้ยังอ่านออกว่าเป็นใบไหน
+  return `cards/${cardId.replace(/:/g, "__")}`;
 }
 
 function token(): string | undefined {

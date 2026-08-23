@@ -94,7 +94,50 @@ export function isStorageWritable(): boolean {
 }
 
 function normalize(parsed: Partial<Overrides>): Overrides {
-  return { ...EMPTY_OVERRIDES, ...parsed };
+  return migrate({ ...EMPTY_OVERRIDES, ...parsed });
+}
+
+/**
+ * ยกข้อมูลเก่าให้เข้ากับ id แบบใหม่
+ *
+ * เดิม id ของการ์ดคือเลขการ์ดล้วน (OP13-118) ตอนที่การ์ดเลขเดียวกันทุกแบบพิมพ์
+ * ยังนับเป็นใบเดียว พอแยกเป็นคนละใบ id เลยกลายเป็น "เลขการ์ด:แบบพิมพ์"
+ * ของที่แอดมินเคยบันทึกไว้ (รูป การ์ดปักหมุด การ์ดที่ลบ) จึงชี้ไปที่ id ที่ไม่มีอยู่
+ *
+ * แปลงตอนอ่านทุกครั้ง ทำซ้ำกี่รอบก็ได้ผลเท่าเดิม จะได้ไม่ต้องแก้ข้อมูลในที่เก็บ
+ * ก่อนแล้วค่อยกล้าดีพลอย
+ */
+function migrate(data: Overrides): Overrides {
+  const withPrinting = (id: string) => (id.includes(":") ? id : `${id}:normal`);
+
+  const cardEdits: Record<string, Partial<Card>> = {};
+  for (const [id, edit] of Object.entries(data.cardEdits)) {
+    const next = withPrinting(id);
+    const moved = { ...edit };
+    if (moved.imageUrl) {
+      moved.imageUrl = moved.imageUrl.replace(
+        `/api/card-image/${encodeURIComponent(id)}`,
+        `/api/card-image/${encodeURIComponent(next)}`,
+      );
+    }
+    cardEdits[next] = { ...cardEdits[next], ...moved };
+  }
+
+  return {
+    ...data,
+    cardEdits,
+    featuredCardIds: data.featuredCardIds.map(withPrinting),
+    deletedCardIds: data.deletedCardIds.map(withPrinting),
+    cards: data.cards.map((card) => ({
+      ...card,
+      id: withPrinting(card.id),
+      variantType: card.variantType ?? "normal",
+    })),
+    variants: data.variants.map((variant) => ({
+      ...variant,
+      cardId: withPrinting(variant.cardId),
+    })),
+  };
 }
 
 async function loadFromBlob(): Promise<LoadedOverrides> {
