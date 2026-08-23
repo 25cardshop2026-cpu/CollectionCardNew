@@ -2,6 +2,7 @@ import {
   CARDS as SEED_CARDS,
   CONDITION_MULTIPLIER,
   GAMES,
+  GRADING_COST_THB,
   HISTORY_DAYS,
   SETS as SEED_SETS,
   VARIANTS as SEED_VARIANTS,
@@ -511,16 +512,31 @@ export async function setPrice(
   condition: Condition,
   priceThb: number,
   source: PriceSource = "market",
-): Promise<PriceCurrent | null> {
-  if (!snap().variantById.has(variantId)) return null;
-  if (!Number.isFinite(priceThb) || priceThb <= 0) return null;
+): Promise<Result<PriceCurrent>> {
+  if (!snap().variantById.has(variantId)) {
+    return { ok: false, error: "ไม่พบเวอร์ชันการ์ดนี้" };
+  }
+  if (!Number.isFinite(priceThb) || priceThb <= 0) {
+    return { ok: false, error: "ราคาต้องเป็นตัวเลขมากกว่า 0" };
+  }
 
   // ราคาที่กรอกอิงสภาพใดก็ได้ แต่เก็บเป็นฐาน NM เพื่อให้เทียบกันได้ทั้งระบบ
   const nmEquivalent =
     condition === "PSA10"
       ? psa10ToNm(priceThb, variantId)
       : Math.round(priceThb / CONDITION_MULTIPLIER[condition]);
-  if (nmEquivalent <= 0) return null;
+
+  // ราคาใบเกรดที่ต่ำกว่าค่าส่งเกรด ถอดกลับเป็นราคาดิบแล้วได้ค่าติดลบ
+  // แปลว่าตัวเลขที่กรอกเป็นไปไม่ได้ในความจริง ต้องบอกให้ชัดว่าทำไม
+  if (nmEquivalent <= 0) {
+    return {
+      ok: false,
+      error:
+        condition === "PSA10"
+          ? `ราคา PSA 10 ต้องมากกว่าค่าส่งเกรด ฿${GRADING_COST_THB.toLocaleString("th-TH")} เพราะไม่มีใครขายใบที่ส่งเกรดแล้วถูกกว่าต้นทุน`
+          : "ราคาต่ำเกินไปจนแปลงกลับเป็นราคาสภาพ NM ไม่ได้",
+    };
+  }
 
   const ok = await commit((draft) => {
     draft.pricePoints.push({
@@ -532,10 +548,14 @@ export async function setPrice(
     });
   });
 
-  if (!ok) return null;
-  return source === "market"
-    ? currentPrice(variantId, condition)
-    : getChannelPrice(variantId, condition, source);
+  if (!ok) return { ok: false, error: NOT_WRITABLE };
+
+  const saved =
+    source === "market"
+      ? currentPrice(variantId, condition)
+      : getChannelPrice(variantId, condition, source);
+
+  return saved ? { ok: true, value: saved } : { ok: false, error: NOT_WRITABLE };
 }
 
 export interface NewSetInput {

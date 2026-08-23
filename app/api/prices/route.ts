@@ -55,10 +55,12 @@ export async function POST(request: Request) {
       : "market";
 
   await loadState();
-  const updated = await setPrice(variantId, condition, priceThb, channel);
-  if (!updated) {
-    return NextResponse.json({ error: "ไม่พบเวอร์ชันการ์ดนี้" }, { status: 404 });
+  const result = await setPrice(variantId, condition, priceThb, channel);
+  if (!result.ok) {
+    // แยก "ไม่มีการ์ดนี้" ออกจาก "ราคาที่กรอกใช้ไม่ได้" เพราะคนแก้คนละทาง
+    const notFound = result.error.includes("ไม่พบ");
+    return NextResponse.json({ error: result.error }, { status: notFound ? 404 : 400 });
   }
 
-  return NextResponse.json(updated);
+  return NextResponse.json(result.value);
 }

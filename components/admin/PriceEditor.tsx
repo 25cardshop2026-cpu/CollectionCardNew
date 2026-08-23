@@ -46,6 +46,7 @@ export function PriceEditor({ rows }: { rows: PriceRow[] }) {
   const [values, setValues] = useState<Record<string, string>>(() => initialValues(rows, "NM"));
   const [status, setStatus] = useState<Record<string, RowStatus>>({});
   const [saved, setSaved] = useState<Record<string, number>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const inputs = useRef<(HTMLInputElement | null)[]>([]);
 
   const shownPrice = (row: PriceRow) => (grade === "PSA10" ? row.psaPrice : row.price);
@@ -56,6 +57,7 @@ export function PriceEditor({ rows }: { rows: PriceRow[] }) {
     setValues(next === "market" ? initialValues(rows, grade) : {});
     setStatus({});
     setSaved({});
+    setErrors({});
   }
 
   function switchGrade(next: Grade) {
@@ -64,6 +66,7 @@ export function PriceEditor({ rows }: { rows: PriceRow[] }) {
     setValues(source === "market" ? initialValues(rows, next) : {});
     setStatus({});
     setSaved({});
+    setErrors({});
   }
 
   const focusRow = (index: number) => {
@@ -79,11 +82,13 @@ export function PriceEditor({ rows }: { rows: PriceRow[] }) {
     const priceThb = Number(raw.replace(/,/g, ""));
     if (!Number.isFinite(priceThb) || priceThb <= 0) {
       setStatus((s) => ({ ...s, [row.variantId]: "error" }));
+      setErrors((e) => ({ ...e, [row.variantId]: "ราคาต้องเป็นตัวเลขมากกว่า 0" }));
       return;
     }
     if (source === "market" && priceThb === shownPrice(row)) return;
 
     setStatus((s) => ({ ...s, [row.variantId]: "saving" }));
+    setErrors((e) => ({ ...e, [row.variantId]: "" }));
 
     try {
       const res = await fetch("/api/prices", {
@@ -96,13 +101,19 @@ export function PriceEditor({ rows }: { rows: PriceRow[] }) {
           source,
         }),
       });
-      if (!res.ok) throw new Error(await res.text());
+      const data = (await res.json()) as { priceThb?: number; error?: string };
+      if (!res.ok) throw new Error(data.error ?? "บันทึกไม่สำเร็จ");
 
-      const data = (await res.json()) as { priceThb: number };
       setStatus((s) => ({ ...s, [row.variantId]: "saved" }));
-      setSaved((s) => ({ ...s, [row.variantId]: data.priceThb }));
-    } catch {
+      setSaved((s) => ({ ...s, [row.variantId]: data.priceThb ?? 0 }));
+    } catch (err) {
+      // เหตุผลจริงมาจากเซิร์ฟเวอร์ เช่นราคา PSA 10 ต่ำกว่าค่าส่งเกรด
+      // ถ้าโชว์แค่ "บันทึกไม่สำเร็จ" คนกรอกจะไม่รู้ว่าต้องแก้อะไร
       setStatus((s) => ({ ...s, [row.variantId]: "error" }));
+      setErrors((e) => ({
+        ...e,
+        [row.variantId]: err instanceof Error ? err.message : "บันทึกไม่สำเร็จ",
+      }));
     }
   }
 
@@ -236,7 +247,9 @@ export function PriceEditor({ rows }: { rows: PriceRow[] }) {
                       </span>
                     )}
                     {rowStatus === "error" && (
-                      <span className="text-down">บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง</span>
+                      <span className="text-down">
+                        {errors[row.variantId] || "บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง"}
+                      </span>
                     )}
                     {rowStatus === "idle" &&
                       (isStale ? (
