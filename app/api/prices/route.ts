@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { canPersist, loadState, setPrice } from "@/lib/repo";
-import { CONDITIONS, type Condition } from "@/lib/types";
+import { CHANNELS, CONDITIONS, type Condition, type PriceSource } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -17,9 +17,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "ข้อมูลที่ส่งมาไม่ใช่ JSON ที่ถูกต้อง" }, { status: 400 });
   }
 
-  const { variantId, condition, priceThb } = (body ?? {}) as {
+  const { variantId, condition, priceThb, source } = (body ?? {}) as {
     variantId?: unknown;
     condition?: unknown;
+    source?: unknown;
     priceThb?: unknown;
   };
 
@@ -47,8 +48,14 @@ export async function POST(request: Request) {
   }
 
   // ต้องโหลดสถานะก่อน เพราะ setPrice ตรวจว่ามี variant นี้จริงไหมจากดัชนีในหน่วยความจำ
+  // ไม่ระบุช่องทาง = ราคาตลาดหลัก เหมือนพฤติกรรมเดิมก่อนมีช่องทาง
+  const channel: PriceSource =
+    typeof source === "string" && (CHANNELS as readonly string[]).includes(source)
+      ? (source as PriceSource)
+      : "market";
+
   await loadState();
-  const updated = await setPrice(variantId, condition, priceThb);
+  const updated = await setPrice(variantId, condition, priceThb, channel);
   if (!updated) {
     return NextResponse.json({ error: "ไม่พบเวอร์ชันการ์ดนี้" }, { status: 404 });
   }

@@ -11,6 +11,7 @@ import { isLocale, localePath } from "@/lib/i18n/config";
 import { rarityTier } from "@/lib/rarity";
 import {
   getCardBySlug,
+  getChannelPrice,
   getCurrentPrice,
   getHistory,
   getPriceTable,
@@ -19,7 +20,7 @@ import {
   listCardsInSet,
   loadState,
 } from "@/lib/repo";
-import { CONDITIONS } from "@/lib/types";
+import { CHANNELS, CONDITIONS } from "@/lib/types";
 
 // อ่านข้อมูลสดทุกครั้ง เพื่อให้การ์ดที่เพิ่มหรือแก้ในแดชบอร์ดขึ้นทันที
 export const dynamic = "force-dynamic";
@@ -199,6 +200,61 @@ export default async function CardPage({
               <span className="text-[12.5px] text-ink-3">
                 {t.card.updated} {formatAge(headlinePrice.updatedAt, t, locale)}
               </span>
+            </section>
+          )}
+
+          {/* ---------- ราคาตามช่องทาง ---------- */}
+          {headlineVariant && (
+            <section className="flex min-w-0 flex-col gap-4">
+              <p className="eyebrow">{t.channel.title}</p>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                {CHANNELS.map((channel) => {
+                  const raw = getChannelPrice(headlineVariant.id, "NM", channel);
+                  const graded = getChannelPrice(headlineVariant.id, "PSA10", channel);
+
+                  return (
+                    <div key={channel} className="vitrine hud flex flex-col gap-3 p-5">
+                      <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-accent">
+                        {t.channel[channel]}
+                      </span>
+
+                      {raw ? (
+                        <div className="flex flex-col gap-2">
+                          <div className="flex items-baseline justify-between gap-3">
+                            <span className="text-[12.5px] text-ink-3">{t.card.conditionNm}</span>
+                            <PriceTag
+                              priceThb={raw.priceThb}
+                              change7d={raw.change7d}
+                              locale={locale}
+                            />
+                          </div>
+                          <div className="flex items-baseline justify-between gap-3">
+                            <span className="text-[12.5px] text-accent">
+                              {t.card.psaLabel}
+                              {/* ช่องนี้คำนวณจากราคาดิบของช่องทางนั้น ไม่ใช่ราคาที่เห็นบนเว็บนั้นจริง ๆ */}
+                              <span className="ml-1.5 text-[11px] text-ink-3">
+                                {t.channel.estimated}
+                              </span>
+                            </span>
+                            <PriceTag
+                              priceThb={graded?.priceThb ?? null}
+                              locale={locale}
+                            />
+                          </div>
+                          <span className="text-[11.5px] text-ink-3">
+                            {t.card.updated} {formatAge(raw.updatedAt, t, locale)}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-[13px] text-ink-3">{t.channel.empty}</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <p className="text-[12.5px] text-ink-3">{t.channel.note}</p>
             </section>
           )}
 

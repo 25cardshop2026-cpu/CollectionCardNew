@@ -67,7 +67,18 @@ export interface Variant {
 }
 
 /**
- * ราคาผูกกับ variant + condition เสมอ ไม่ใช่ผูกกับ card
+ * ช่องทางที่ราคามาจาก — การ์ดใบเดียวกันคนละช่องทางคนละราคา
+ * market = ราคาตลาดไทยที่เราถือเป็นราคาหลัก ใช้กับราคาที่ไม่ได้ระบุช่องทาง
+ */
+export type PriceSource = "market" | "ebay" | "snkrdunk";
+
+/** ช่องทางที่โชว์แยกให้ดูบนหน้าการ์ด (ไม่รวม market ที่เป็นราคาหลักอยู่แล้ว) */
+export const CHANNELS = ["ebay", "snkrdunk"] as const satisfies readonly PriceSource[];
+
+export type Channel = (typeof CHANNELS)[number];
+
+/**
+ * ราคาผูกกับ variant + condition + ช่องทาง เสมอ ไม่ใช่ผูกกับ card
  * — ดูเหตุผลใน docs/PLAN.md หัวข้อ 2
  */
 export interface PricePoint {
@@ -75,6 +86,8 @@ export interface PricePoint {
   condition: Condition;
   priceThb: number;
   recordedAt: string;
+  /** ไม่ระบุ = ราคาตลาดหลัก เพื่อให้ข้อมูลเก่าที่บันทึกไว้ยังอ่านได้เหมือนเดิม */
+  source?: PriceSource;
 }
 
 export interface PriceCurrent {

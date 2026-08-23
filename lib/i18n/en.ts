@@ -143,6 +143,15 @@ export const en: Dictionary = {
     days: (n: number) => `${n} days`,
   },
 
+  channel: {
+    title: "Price by channel",
+    ebay: "eBay",
+    snkrdunk: "SNKRDUNK",
+    estimated: "estimated",
+    empty: "No price recorded yet",
+    note: "Channel prices are entered by hand in the dashboard, not fetched automatically yet.",
+  },
+
   movers: {
     title: "Biggest movers, 7 days",
     description:

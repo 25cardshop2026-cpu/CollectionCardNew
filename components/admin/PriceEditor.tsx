@@ -22,6 +22,15 @@ const GRADE_LABEL: Record<Grade, string> = {
   PSA10: "PSA 10",
 };
 
+/** ช่องทางที่ราคาถูกบันทึกไว้ให้ — market คือราคาหลักที่โชว์บนหน้าเว็บ */
+type Source = "market" | "ebay" | "snkrdunk";
+
+const SOURCE_LABEL: Record<Source, string> = {
+  market: "ตลาดไทย",
+  ebay: "eBay",
+  snkrdunk: "SNKRDUNK",
+};
+
 /**
  * ตารางอัปเดตราคาแบบ spreadsheet
  * หน้านี้คือหน้าที่แอดมินจะแตะทุกวัน จึงต้องทำงานด้วยคีย์บอร์ดล้วนได้
@@ -33,6 +42,7 @@ const GRADE_LABEL: Record<Grade, string> = {
  */
 export function PriceEditor({ rows }: { rows: PriceRow[] }) {
   const [grade, setGrade] = useState<Grade>("NM");
+  const [source, setSource] = useState<Source>("market");
   const [values, setValues] = useState<Record<string, string>>(() => initialValues(rows, "NM"));
   const [status, setStatus] = useState<Record<string, RowStatus>>({});
   const [saved, setSaved] = useState<Record<string, number>>({});
@@ -40,10 +50,18 @@ export function PriceEditor({ rows }: { rows: PriceRow[] }) {
 
   const shownPrice = (row: PriceRow) => (grade === "PSA10" ? row.psaPrice : row.price);
 
+  function switchSource(next: Source) {
+    setSource(next);
+    // ช่องทางอื่นยังไม่มีราคาเดิมส่งมาจากเซิร์ฟเวอร์ จึงเริ่มจากช่องว่าง
+    setValues(next === "market" ? initialValues(rows, grade) : {});
+    setStatus({});
+    setSaved({});
+  }
+
   function switchGrade(next: Grade) {
     setGrade(next);
     // เติมค่าในช่องใหม่ตามเกรดที่เลือก ไม่งั้นตัวเลขที่ค้างอยู่จะกลายเป็นคนละความหมาย
-    setValues(initialValues(rows, next));
+    setValues(source === "market" ? initialValues(rows, next) : {});
     setStatus({});
     setSaved({});
   }
@@ -63,7 +81,7 @@ export function PriceEditor({ rows }: { rows: PriceRow[] }) {
       setStatus((s) => ({ ...s, [row.variantId]: "error" }));
       return;
     }
-    if (priceThb === shownPrice(row)) return;
+    if (source === "market" && priceThb === shownPrice(row)) return;
 
     setStatus((s) => ({ ...s, [row.variantId]: "saving" }));
 
@@ -71,7 +89,12 @@ export function PriceEditor({ rows }: { rows: PriceRow[] }) {
       const res = await fetch("/api/prices", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ variantId: row.variantId, condition: grade, priceThb }),
+        body: JSON.stringify({
+          variantId: row.variantId,
+          condition: grade,
+          priceThb,
+          source,
+        }),
       });
       if (!res.ok) throw new Error(await res.text());
 
@@ -111,6 +134,32 @@ export function PriceEditor({ rows }: { rows: PriceRow[] }) {
         )}
       </div>
 
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="mr-1 font-mono text-[10.5px] uppercase tracking-[0.08em] text-ink-3">
+          ช่องทาง
+        </span>
+        {(["market", "ebay", "snkrdunk"] as Source[]).map((value) => (
+          <button
+            key={value}
+            type="button"
+            onClick={() => switchSource(value)}
+            aria-pressed={source === value}
+            className={`rounded-[3px] border px-2.5 py-[3px] font-mono text-[10.5px] uppercase tracking-[0.06em] ${
+              source === value
+                ? "border-accent bg-accent-soft text-accent"
+                : "border-line-strong text-ink-2 hover:border-accent hover:text-accent"
+            }`}
+          >
+            {SOURCE_LABEL[value]}
+          </button>
+        ))}
+        <span className="text-[12px] text-ink-3">
+          {source === "market"
+            ? "ราคาหลักที่โชว์เป็นตัวใหญ่บนหน้าการ์ด"
+            : "โชว์แยกในกล่องราคาตามช่องทาง ไม่กระทบราคาหลัก"}
+        </span>
+      </div>
+
       <div className="overflow-x-auto rounded-lg border border-line bg-surface">
         <table className="w-full text-[13.5px]">
           <thead>
@@ -125,7 +174,7 @@ export function PriceEditor({ rows }: { rows: PriceRow[] }) {
                 เวอร์ชัน
               </th>
               <th className="px-3 py-2.5 text-right font-mono text-[10px] font-normal uppercase tracking-[0.07em] text-ink-3">
-                ราคา {GRADE_LABEL[grade]} (บาท)
+                ราคา {GRADE_LABEL[grade]} · {SOURCE_LABEL[source]} (บาท)
               </th>
               <th className="px-3 py-2.5 text-left font-mono text-[10px] font-normal uppercase tracking-[0.07em] text-ink-3">
                 สถานะ
@@ -173,7 +222,7 @@ export function PriceEditor({ rows }: { rows: PriceRow[] }) {
                         }
                       }}
                       onBlur={() => void save(row)}
-                      aria-label={`ราคา ${GRADE_LABEL[grade]} ของ ${row.cardName} ${row.variantLabel}`}
+                      aria-label={`ราคา ${GRADE_LABEL[grade]} จาก ${SOURCE_LABEL[source]} ของ ${row.cardName} ${row.variantLabel}`}
                       className="w-28 rounded-[3px] border border-line-strong bg-surface-2 px-2 py-1 text-right font-mono tabular-nums focus:border-accent focus:bg-accent-soft"
                     />
                   </td>

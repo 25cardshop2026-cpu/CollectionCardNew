@@ -32,6 +32,7 @@ import type {
   Mover,
   PricePoint,
   PriceCurrent,
+  PriceSource,
   Variant,
   VariantType,
 } from "./types";
@@ -146,8 +147,9 @@ function build(overrides: Overrides): Snapshot {
     let weekAgo = summary.weekAgo;
 
     // ราคาที่แอดมินกรอกทับของสมมติเสมอ และเป็นตัวชี้ว่าอัปเดตล่าสุดเมื่อไหร่
-    const recorded = recordedByVariant.get(variant.id);
-    if (recorded && recorded.length > 0) {
+    // นับเฉพาะราคาตลาดหลัก ราคาจาก eBay/SNKRDUNK เป็นข้อมูลเทียบ ไม่ใช่ราคาหลัก
+    const recorded = (recordedByVariant.get(variant.id) ?? []).filter(isMarketPrice);
+    if (recorded.length > 0) {
       latest = recorded[recorded.length - 1];
       const weekMs = 7 * 86400000;
       const cutoff = new Date(latest.recordedAt).getTime() - weekMs;
@@ -221,6 +223,11 @@ async function commit(mutate: (draft: Overrides) => void): Promise<boolean> {
   cachedSnapshot = build(saved.overrides);
   cachedKey = saved.key;
   return true;
+}
+
+/** ราคาที่ไม่ระบุช่องทาง ถือเป็นราคาตลาดหลัก (ข้อมูลเก่าก่อนมีช่องทาง) */
+function isMarketPrice(point: PricePoint): boolean {
+  return point.source === undefined || point.source === "market";
 }
 
 function currentPrice(variantId: string, condition: Condition): PriceCurrent | null {
@@ -356,13 +363,47 @@ export function getCurrentPrice(variantId: string, condition: Condition): PriceC
   return currentPrice(variantId, condition);
 }
 
+/**
+ * ราคาล่าสุดจากช่องทางหนึ่ง (eBay / SNKRDUNK)
+ *
+ * ต่างจากราคาหลักตรงที่ไม่มีของสมมติมารองรับ — ถ้ายังไม่มีใครกรอกก็คือไม่มี
+ * เพราะการเดาราคาของตลาดต่างประเทศแล้วโชว์เหมือนของจริงคือการโกหกผู้ใช้
+ */
+export function getChannelPrice(
+  variantId: string,
+  condition: Condition,
+  source: PriceSource,
+): PriceCurrent | null {
+  const recorded = (snap().recordedByVariant.get(variantId) ?? []).filter(
+    (p) => p.source === source,
+  );
+  if (recorded.length === 0) return null;
+
+  const latest = recorded[recorded.length - 1];
+  const cutoff = new Date(latest.recordedAt).getTime() - 7 * 86400000;
+  const earlier = recorded.filter((p) => new Date(p.recordedAt).getTime() <= cutoff);
+  const before = earlier.length > 0 ? earlier[earlier.length - 1].priceThb : null;
+
+  const nm = latest.priceThb;
+  return {
+    variantId,
+    condition,
+    priceThb:
+      condition === "PSA10"
+        ? nmToPsa10(nm, variantId)
+        : Math.round(nm * CONDITION_MULTIPLIER[condition]),
+    change7d: before && before > 0 ? Math.round(((nm - before) / before) * 1000) / 10 : null,
+    updatedAt: latest.recordedAt,
+  };
+}
+
 /** กราฟย้อนหลังของ variant เดียว — สร้างตอนเรียก ไม่ได้เก็บไว้ในดัชนี */
 export function getHistory(variantId: string, days = HISTORY_DAYS): PricePoint[] {
   const state = snap();
   const variant = state.variantById.get(variantId);
   if (!variant) return [];
 
-  const recorded = state.recordedByVariant.get(variantId) ?? [];
+  const recorded = (state.recordedByVariant.get(variantId) ?? []).filter(isMarketPrice);
   return [...simulateSeries(variant, days), ...recorded]
     .sort((a, b) => a.recordedAt.localeCompare(b.recordedAt))
     .slice(-days);
@@ -469,6 +510,7 @@ export async function setPrice(
   variantId: string,
   condition: Condition,
   priceThb: number,
+  source: PriceSource = "market",
 ): Promise<PriceCurrent | null> {
   if (!snap().variantById.has(variantId)) return null;
   if (!Number.isFinite(priceThb) || priceThb <= 0) return null;
@@ -486,11 +528,14 @@ export async function setPrice(
       condition: "NM",
       priceThb: nmEquivalent,
       recordedAt: new Date().toISOString(),
+      source,
     });
   });
 
   if (!ok) return null;
-  return currentPrice(variantId, condition);
+  return source === "market"
+    ? currentPrice(variantId, condition)
+    : getChannelPrice(variantId, condition, source);
 }
 
 export interface NewSetInput {
