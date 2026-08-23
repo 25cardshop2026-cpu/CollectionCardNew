@@ -152,6 +152,16 @@ export const en: Dictionary = {
     note: "Channel prices are entered by hand in the dashboard, not fetched automatically yet.",
   },
 
+  search: {
+    title: "Search",
+    heading: "Find a card by name",
+    placeholder: "Card name or number",
+    submit: "Search",
+    hint: "Type at least 2 characters. Works on Thai names, English names and card numbers — try Luffy, Shanks or OP01-120.",
+    noResults: (q: string) => `No cards match "${q}"`,
+    found: (n: number) => `${n} cards`,
+  },
+
   movers: {
     title: "Biggest movers, 7 days",
     description:

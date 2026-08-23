@@ -301,9 +301,10 @@ export default async function CardPage({
                       <th
                         key={condition}
                         className={`whitespace-nowrap px-5 py-3.5 text-right font-mono text-[9.5px] font-normal uppercase tracking-[0.12em] ${
-                          // คอลัมน์การ์ดเกรดต้องอ่านออกทันทีว่าไม่ใช่สภาพการ์ดดิบ
+                          // คอลัมน์การ์ดเกรดใช้สีตัวอักษรบอกว่าคนละตลาดกับการ์ดดิบ
+                          // ไม่ตีกรอบหรือใส่พื้น เพราะทำให้ตารางดูแตกเป็นสองก้อน
                           condition === "PSA10"
-                            ? "border-l border-accent-line bg-accent-soft text-accent"
+                            ? "text-accent"
                             : "text-ink-3"
                         }`}
                       >
@@ -331,7 +332,7 @@ export default async function CardPage({
                           key={CONDITIONS[i]}
                           className={`whitespace-nowrap px-5 py-3 text-right font-mono tabular-nums ${
                             CONDITIONS[i] === "PSA10"
-                              ? "border-l border-accent-line bg-accent-soft font-medium text-accent"
+                              ? "font-medium text-accent"
                               : "text-ink-2"
                           }`}
                         >

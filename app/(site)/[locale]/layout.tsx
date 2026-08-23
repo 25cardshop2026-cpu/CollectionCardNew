@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
+import { SearchBox } from "@/components/SearchBox";
 import { fontVariables } from "@/lib/fonts";
 import { getDictionary } from "@/lib/i18n";
 import { HTML_LANG, isLocale, localePath } from "@/lib/i18n/config";
@@ -87,7 +88,17 @@ export default async function SiteLayout({
                 ))}
               </nav>
 
-              <div className="ml-auto flex items-center gap-2.5">
+              {/* ช่องค้นหาอยู่กลางแถบหัวเว็บบนจอกว้าง จอแคบใช้ลิงก์ในแถวเมนูแทน */}
+              <div className="ml-auto hidden w-[260px] xl:block">
+                <SearchBox
+                  action={p("/search")}
+                  placeholder={t.search.placeholder}
+                  submitLabel={t.search.submit}
+                  compact
+                />
+              </div>
+
+              <div className="ml-auto flex items-center gap-2.5 xl:ml-4">
                 <LocaleSwitcher current={locale} />
                 {/* จอแคบใช้ลิงก์ในแถวเมนูข้างล่างแทน จะได้ไม่ซ้ำกัน */}
                 <Link
@@ -114,6 +125,12 @@ export default async function SiteLayout({
                   {item.label}
                 </Link>
               ))}
+              <Link
+                href={p("/search")}
+                className="shrink-0 rounded-full border border-line-strong px-3 py-1 text-[12.5px] whitespace-nowrap text-ink-2 transition-colors hover:border-accent hover:text-accent"
+              >
+                {t.search.title}
+              </Link>
               <Link
                 href="/admin"
                 className="shrink-0 rounded-full border border-accent-line px-3 py-1 font-mono text-[10.5px] whitespace-nowrap text-accent uppercase"

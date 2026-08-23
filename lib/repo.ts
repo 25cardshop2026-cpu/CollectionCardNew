@@ -350,6 +350,53 @@ export function listCardsInSet(setCode: string): CardWithPrice[] {
     });
 }
 
+/**
+ * ค้นการ์ดจากชื่อ (ไทยหรืออังกฤษ) หรือเลขการ์ด
+ *
+ * ไล่ทีละใบตรง ๆ เพราะแคตตาล็อกมีไม่กี่พันใบ ยังเร็วกว่าการสร้างดัชนีค้นหา
+ * ไว้ในหน่วยความจำแล้วต้องคอยดูแลให้ตรงกับข้อมูลที่แอดมินแก้
+ *
+ * เรียงผลลัพธ์: ขึ้นต้นตรงคำค้นมาก่อน แล้วค่อยตัวที่มีคำค้นอยู่กลางชื่อ
+ * ในกลุ่มเดียวกันเรียงตามราคาสูงไปต่ำ เพราะคนค้นชื่อตัวละครมักหาใบแพงก่อน
+ */
+export function searchCards(query: string, limit = 60): CardWithPrice[] {
+  const q = query.trim().toLowerCase();
+  if (q.length < 2) return [];
+
+  const state = snap();
+  const scored: { row: CardWithPrice; rank: number }[] = [];
+
+  for (const card of state.cards) {
+    const fields = [card.nameTh.toLowerCase(), card.nameEn.toLowerCase(), card.number.toLowerCase()];
+    const rank = fields.some((f) => f.startsWith(q))
+      ? 0
+      : fields.some((f) => f.includes(q))
+        ? 1
+        : -1;
+    if (rank < 0) continue;
+
+    const set = state.setByCode.get(card.setCode);
+    if (!set) continue;
+
+    const variants = getVariants(card.id);
+    let headline: PriceCurrent | null = null;
+    for (const variant of variants) {
+      const price = currentPrice(variant.id, "NM");
+      if (price && (!headline || price.priceThb > headline.priceThb)) headline = price;
+    }
+
+    scored.push({ row: { card, set, variants, headline }, rank });
+  }
+
+  return scored
+    .sort(
+      (a, b) =>
+        a.rank - b.rank || (b.row.headline?.priceThb ?? 0) - (a.row.headline?.priceThb ?? 0),
+    )
+    .slice(0, limit)
+    .map((entry) => entry.row);
+}
+
 export function getPriceTable(
   cardId: string,
   conditions: Condition[],
