@@ -31,7 +31,7 @@ export function SearchBox({
       />
       <button
         type="submit"
-        className={`btn btn-ghost shrink-0 ${compact ? "btn-sm" : ""}`}
+        className={`btn btn-ghost shrink-0 whitespace-nowrap ${compact ? "btn-sm px-3" : ""}`}
       >
         {submitLabel}
       </button>

@@ -65,8 +65,11 @@ export default async function SiteLayout({
       <body className="font-sans site">
         <div className="flex min-h-screen flex-col">
           <header className="sticky top-0 z-50 bg-[var(--glass)] backdrop-blur-xl">
-            <div className="mx-auto flex h-16 max-w-6xl items-center gap-8 px-5 sm:px-8">
-              <Link href={p("/")} className="group flex items-center gap-2.5 leading-none">
+            <div className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-5 sm:px-8 xl:gap-6">
+              <Link
+                href={p("/")}
+                className="group flex shrink-0 items-center gap-2.5 leading-none"
+              >
                 <span className="pulse-dot" aria-hidden="true" />
                 <span className="flex flex-col">
                   <span className="font-display text-[19px] font-semibold tracking-[-0.01em] transition-colors group-hover:text-accent">
@@ -78,7 +81,9 @@ export default async function SiteLayout({
                 </span>
               </Link>
 
-              <nav className="hidden items-center gap-6 text-[14px] text-ink-2 lg:flex">
+              {/* whitespace-nowrap สำคัญ ไม่งั้นคำไทยอย่าง "หน้าแรก" ถูกตัดเป็นสองบรรทัด
+                  เวลาที่ยังพอมีที่ แต่ไม่พอสำหรับทั้งคำ */}
+              <nav className="hidden shrink-0 items-center gap-5 text-[13.5px] whitespace-nowrap text-ink-2 lg:flex">
                 {nav.map((item) => (
                   <NavLink
                     key={item.href}
@@ -92,8 +97,8 @@ export default async function SiteLayout({
                 ))}
               </nav>
 
-              {/* ช่องค้นหาอยู่กลางแถบหัวเว็บบนจอกว้าง จอแคบใช้ลิงก์ในแถวเมนูแทน */}
-              <div className="ml-auto hidden w-[260px] xl:block">
+              {/* ช่องค้นหายืดตามที่ว่างที่เหลือ จอแคบใช้ลิงก์ในแถวเมนูข้างล่างแทน */}
+              <div className="mx-auto hidden w-full max-w-[260px] min-w-[150px] flex-1 xl:block">
                 <SearchBox
                   action={p("/search")}
                   placeholder={t.search.placeholder}
@@ -102,12 +107,12 @@ export default async function SiteLayout({
                 />
               </div>
 
-              <div className="ml-auto flex items-center gap-2.5 xl:ml-4">
+              <div className="ml-auto flex shrink-0 items-center gap-2.5 xl:ml-0">
                 <LocaleSwitcher current={locale} />
                 {/* จอแคบใช้ลิงก์ในแถวเมนูข้างล่างแทน จะได้ไม่ซ้ำกัน */}
                 <Link
                   href="/admin"
-                  className="hidden rounded-full border border-line-strong px-3.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 transition-colors hover:border-accent hover:text-accent lg:inline-block"
+                  className="hidden rounded-full border border-line-strong px-3 py-1.5 font-mono text-[10px] whitespace-nowrap text-ink-3 uppercase tracking-[0.1em] transition-colors hover:border-accent hover:text-accent lg:inline-block"
                 >
                   {t.nav.dashboard}
                 </Link>
