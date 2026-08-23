@@ -5,7 +5,7 @@ import { Chip, Eyebrow, PriceTag } from "@/components/Chip";
 import { formatAge, formatNumber } from "@/lib/format";
 import { getDictionary } from "@/lib/i18n";
 import { isLocale, localePath } from "@/lib/i18n/config";
-import { cardName } from "@/lib/display";
+import { cardName, gameTagline } from "@/lib/display";
 import {
   countCardsInGame,
   getGameLastUpdated,
@@ -77,7 +77,7 @@ export default async function BrowsePage({
                   {game.nameEn}
                 </h2>
                 <p className="max-w-[36ch] text-[14px] leading-relaxed text-ink-2">
-                  {game.tagline}
+                  {gameTagline(game, locale)}
                 </p>
               </div>
 

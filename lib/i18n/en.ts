@@ -167,6 +167,23 @@ export const en: Dictionary = {
     promo: "Promo",
   },
 
+  cardType: {
+    Leader: "Leader",
+    Character: "Character",
+    Event: "Event",
+    Stage: "Stage",
+  },
+
+  color: {
+    แดง: "Red",
+    เขียว: "Green",
+    ฟ้า: "Blue",
+    ม่วง: "Purple",
+    ดำ: "Black",
+    เหลือง: "Yellow",
+    ไม่มีสี: "Colorless",
+  },
+
   tier: {
     mythic: "Chase",
     epic: "Very rare",

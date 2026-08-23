@@ -170,6 +170,25 @@ export const th = {
     promo: "Promo",
   } satisfies Record<VariantType, string>,
 
+  /** ประเภทการ์ด — ใช้คำเดียวกับที่เว็บทางการภาษาไทยใช้ */
+  cardType: {
+    Leader: "ลีดเดอร์",
+    Character: "คาแรกเตอร์",
+    Event: "อีเวนต์",
+    Stage: "สเตจ",
+  } as Record<string, string>,
+
+  /** สีการ์ด — ข้อมูลเก็บเป็นภาษาไทยอยู่แล้ว ตรงนี้จึงเป็นตัวเดิม */
+  color: {
+    แดง: "แดง",
+    เขียว: "เขียว",
+    ฟ้า: "ฟ้า",
+    ม่วง: "ม่วง",
+    ดำ: "ดำ",
+    เหลือง: "เหลือง",
+    ไม่มีสี: "ไม่มีสี",
+  } as Record<string, string>,
+
   tier: {
     mythic: "หายากที่สุด",
     epic: "หายากมาก",

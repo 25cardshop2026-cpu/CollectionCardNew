@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { CardArt } from "@/components/CardArt";
 import { Chip, PriceTag } from "@/components/Chip";
 import { Sparkline } from "@/components/Sparkline";
-import { cardName, cardNameAlt, setName } from "@/lib/display";
+import { cardName, cardNameAlt, cardTypeLabel, colorLabel, setName } from "@/lib/display";
 import { formatAge, formatBaht, formatPercent, trendClass } from "@/lib/format";
 import { getDictionary } from "@/lib/i18n";
 import { isLocale, localePath } from "@/lib/i18n/config";
@@ -148,8 +148,8 @@ export default async function CardPage({
           <div className="flex flex-wrap gap-1.5">
             <Chip tone="accent">{card.rarity}</Chip>
             <Chip tone="quiet">{t.tier[tier]}</Chip>
-            <Chip tone="quiet">{card.cardType}</Chip>
-            <Chip tone="quiet">{card.color}</Chip>
+            <Chip tone="quiet">{cardTypeLabel(card.cardType, t)}</Chip>
+            <Chip tone="quiet">{colorLabel(card.color, t)}</Chip>
           </div>
         </div>
 

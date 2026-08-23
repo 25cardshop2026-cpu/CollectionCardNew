@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Chip } from "@/components/Chip";
-import { setName, setNameAlt } from "@/lib/display";
+import { gameTagline, setName, setNameAlt } from "@/lib/display";
 import { formatDate } from "@/lib/format";
 import { getDictionary } from "@/lib/i18n";
 import { isLocale, localePath } from "@/lib/i18n/config";
@@ -64,7 +64,7 @@ export default async function GamePage({
           {game.nameEn}
         </h1>
         <div className="accent-rule h-px w-24" aria-hidden="true" />
-        <p className="max-w-[56ch] text-[15px] leading-relaxed text-ink-2">{game.tagline}</p>
+        <p className="max-w-[56ch] text-[15px] leading-relaxed text-ink-2">{gameTagline(game, locale)}</p>
       </header>
 
       <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">

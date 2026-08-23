@@ -33,7 +33,8 @@ export interface Game {
   slug: string;
   nameTh: string;
   nameEn: string;
-  tagline: string;
+  taglineTh: string;
+  taglineEn: string;
 }
 
 export interface CardSet {

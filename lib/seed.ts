@@ -28,13 +28,15 @@ export const GAMES: Game[] = [
     slug: "one-piece",
     nameTh: "วันพีซ",
     nameEn: "One Piece Card Game",
-    tagline: "การ์ดเกมจากวันพีซ เริ่มวางจำหน่ายปี 2022",
+    taglineTh: "การ์ดเกมจากวันพีซ เริ่มวางจำหน่ายปี 2022",
+    taglineEn: "The One Piece trading card game, launched in 2022.",
   },
   {
     slug: "pokemon",
     nameTh: "โปเกมอน",
     nameEn: "Pokémon Trading Card Game",
-    tagline: "การ์ดเกมที่เก่าแก่และมีมูลค่าสะสมสูงที่สุด",
+    taglineTh: "การ์ดเกมที่เก่าแก่และมีมูลค่าสะสมสูงที่สุด",
+    taglineEn: "The oldest trading card game, and the one collectors pay the most for.",
   },
 ];
 
