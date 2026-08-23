@@ -54,7 +54,14 @@ export default async function MoversPage({
         <p className="max-w-[58ch] text-[15px] leading-relaxed text-ink-2">{t.movers.sub}</p>
       </header>
 
+      {movers.length === 0 && (
+        <p className="vitrine px-5 py-10 text-center text-[14px] text-ink-3">
+          {t.movers.empty}
+        </p>
+      )}
+
       {/* ชุดกับเวอร์ชันถูกซ่อนบนจอแคบ เพื่อให้คอลัมน์ % ซึ่งเป็นหัวใจของหน้านี้ไม่ตกขอบ */}
+      {movers.length > 0 && (
       <div className="vitrine hud min-w-0 overflow-hidden">
         <table className="w-full text-[14px]">
           <thead>
@@ -116,6 +123,7 @@ export default async function MoversPage({
           </tbody>
         </table>
       </div>
+      )}
     </div>
   );
 }

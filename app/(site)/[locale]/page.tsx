@@ -23,10 +23,10 @@ export default async function LandingPage({
   const p = (path: string) => localePath(locale, path);
   const stats = getAdminStats();
 
-  // ดึงการ์ดแพงสุดสามใบมาโชว์ ใช้ข้อมูลจริงในระบบ ไม่ใช่ภาพประกอบ
+  // การ์ดแพงสุดสามใบ ถ้ายังไม่มีใครกรอกราคาก็หยิบสามใบแรกมาโชว์แทน
+  // เพราะ hero ที่ไม่มีการ์ดเลยดูเหมือนเว็บพัง ทั้งที่แค่ยังไม่มีราคา
   const showcase = listAllSets()
     .flatMap((set) => listCardsInSet(set.code))
-    .filter((row) => row.headline)
     .sort((a, b) => (b.headline?.priceThb ?? 0) - (a.headline?.priceThb ?? 0))
     .slice(0, 3);
 
@@ -95,6 +95,7 @@ export default async function LandingPage({
               ))}
             </div>
 
+            {movers.length > 0 && (
             <div className="vitrine hud flex flex-col gap-3 p-5">
               <span className="flex items-center gap-2 font-mono text-[9.5px] uppercase tracking-[0.14em] text-accent">
                 <span className="pulse-dot" aria-hidden="true" />
@@ -118,6 +119,7 @@ export default async function LandingPage({
                 </Link>
               ))}
             </div>
+            )}
           </div>
         )}
         </section>
@@ -221,7 +223,7 @@ export default async function LandingPage({
               {t.landing.finalSub(
                 formatNumber(stats.cards, locale),
                 stats.sets,
-                showcase[0]?.headline ? formatBaht(showcase[0].headline.priceThb, locale) : "—",
+                showcase[0]?.headline ? formatBaht(showcase[0].headline.priceThb, locale) : null,
               )}
             </p>
             <Link href={p("/browse")} className="btn btn-primary">

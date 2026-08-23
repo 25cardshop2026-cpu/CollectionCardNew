@@ -118,6 +118,12 @@ export default async function BrowsePage({
       <section className="flex flex-col gap-6">
         <Eyebrow>{t.browse.moversTitle}</Eyebrow>
 
+        {movers.length === 0 && (
+          <p className="vitrine px-5 py-8 text-center text-[13.5px] text-ink-3">
+            {t.movers.empty}
+          </p>
+        )}
+
         <ul className="vitrine hud divide-y divide-line overflow-hidden">
           {movers.map((mover, index) => (
             <li key={mover.variant.id}>

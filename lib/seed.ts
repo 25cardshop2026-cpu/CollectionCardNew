@@ -121,20 +121,6 @@ function titleCase(value: string): string {
  */
 const PRINTING_TYPES: VariantType[] = ["parallel", "alt_art", "manga", "full_art", "promo"];
 
-/**
- * ราคาฐานตามความหายาก (บาท) — ใช้กับการ์ดที่ยังไม่มีใครกรอกราคาจริง
- * ตัวเลขมาจากช่วงราคาคร่าว ๆ ของตลาดไทย ไม่ใช่ราคาจริงรายใบ
- */
-const RARITY_BASE: Record<string, number> = {
-  C: 15,
-  UC: 25,
-  R: 55,
-  SR: 320,
-  SEC: 2400,
-  L: 90,
-  P: 120,
-  "SP CARD": 900,
-};
 
 // ---------------- ราคา ----------------
 
@@ -186,15 +172,6 @@ export function psa10ToNm(psaPrice: number, variantId: string): number {
   return Math.round(psaPrice >= knee ? psaPrice / premium : psaPrice - GRADING_COST_THB);
 }
 
-/** ตัวคูณราคาตาม variant เทียบกับ normal */
-const VARIANT_MULTIPLIER: Record<VariantType, number> = {
-  normal: 1,
-  parallel: 3.2,
-  alt_art: 6.5,
-  manga: 11,
-  full_art: 4.1,
-  promo: 2.2,
-};
 
 export function slugify(input: string): string {
   return input
@@ -249,7 +226,6 @@ export const SETS: CardSet[] = [
 
 export const CARDS: Card[] = [];
 export const VARIANTS: Variant[] = [];
-const BASE_PRICE = new Map<string, number>();
 
 for (const card of catalog.cards) {
   CARDS.push({
@@ -283,68 +259,4 @@ for (const card of catalog.cards) {
     });
   });
 
-  // ราคาสมมติจากความหายาก บวกความต่างรายใบเล็กน้อยให้ไม่เท่ากันหมดทั้งชุด
-  const base = RARITY_BASE[card.rarity.toUpperCase()] ?? 40;
-  const rand = makeRng(hashString(`price:${card.number}`));
-  BASE_PRICE.set(card.number, Math.round(base * (0.75 + rand() * 0.9)));
-}
-
-export function basePriceOf(variant: Variant): number {
-  return (BASE_PRICE.get(variant.cardId) ?? 100) * VARIANT_MULTIPLIER[variant.variantType];
-}
-
-/**
- * เดินราคาย้อนหลังแบบ random walk ที่ deterministic แล้วส่งค่ารายวันออกทาง callback
- *
- * ไม่คืนเป็นอาร์เรย์ เพราะแคตตาล็อกมีหลายพัน variant การเก็บ 90 จุดต่อใบ
- * แปลว่าต้องถือของเป็นแสนชิ้นไว้ในหน่วยความจำทุกครั้งที่สร้างดัชนี
- * ผู้เรียกจึงเลือกเองว่าจะเก็บทุกวัน (หน้ารายละเอียด) หรือเก็บแค่สองวัน (หน้ารวม)
- */
-function walk(
-  variantId: string,
-  base: number,
-  days: number,
-  onDay: (daysAgo: number, price: number) => void,
-): void {
-  const rand = makeRng(hashString(variantId));
-  let value = base * 0.86;
-
-  for (let daysAgo = days - 1; daysAgo >= 0; daysAgo--) {
-    const drift = (base - value) * 0.045;
-    const noise = (rand() - 0.5) * base * 0.035;
-    value = Math.max(base * 0.35, value + drift + noise);
-    onDay(daysAgo, Math.round(value));
-  }
-}
-
-/** ราคาล่าสุดกับราคาเมื่อ 7 วันก่อนของ variant หนึ่ง — พอสำหรับหน้ารวมและ % ขยับ */
-export function simulateSummary(variant: Variant): { latest: number; weekAgo: number } {
-  let latest = 0;
-  let weekAgo = 0;
-
-  walk(variant.id, basePriceOf(variant), HISTORY_DAYS, (daysAgo, price) => {
-    if (daysAgo === 0) latest = price;
-    if (daysAgo === 7) weekAgo = price;
-  });
-
-  return { latest, weekAgo: weekAgo || latest };
-}
-
-/** ราคารายวันเต็มชุด ใช้เฉพาะตอนเปิดหน้ารายละเอียดการ์ดทีละใบ */
-export function simulateSeries(variant: Variant, days = HISTORY_DAYS): PricePoint[] {
-  const today = startOfToday();
-  const points: PricePoint[] = [];
-
-  walk(variant.id, basePriceOf(variant), days, (daysAgo, price) => {
-    const date = new Date(today);
-    date.setDate(date.getDate() - daysAgo);
-    points.push({
-      variantId: variant.id,
-      condition: "NM",
-      priceThb: price,
-      recordedAt: date.toISOString(),
-    });
-  });
-
-  return points;
 }

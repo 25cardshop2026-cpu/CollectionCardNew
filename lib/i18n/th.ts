@@ -83,8 +83,10 @@ export const th = {
     ],
 
     finalTitle: "เริ่มดูราคาการ์ดได้เลยตอนนี้",
-    finalSub: (cards: string, sets: number, price: string) =>
-      `มีข้อมูล ${cards} ใบจาก ${sets} ชุดให้ไล่ดู การ์ดที่แพงที่สุดในระบบตอนนี้อยู่ที่ ${price}`,
+    finalSub: (cards: string, sets: number, price: string | null) =>
+      price
+        ? `มีข้อมูล ${cards} ใบจาก ${sets} ชุดให้ไล่ดู การ์ดที่แพงที่สุดในระบบตอนนี้อยู่ที่ ${price}`
+        : `มีข้อมูล ${cards} ใบจาก ${sets} ชุดให้ไล่ดู ราคากำลังทยอยอัปเดตเข้าระบบ`,
   },
 
   browse: {
@@ -179,6 +181,7 @@ export const th = {
     colVariant: "เวอร์ชัน",
     colPrice: "ราคา",
     colChange: "7 วัน",
+    empty: "ยังไม่มีราคาในระบบ — กรอกราคาในแดชบอร์ดก่อน แล้วอันดับนี้จะขึ้นเอง",
   },
 
   variant: {

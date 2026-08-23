@@ -79,8 +79,10 @@ export const en: Dictionary = {
     ],
 
     finalTitle: "Start checking prices now",
-    finalSub: (cards: string, sets: number, price: string) =>
-      `${cards} cards across ${sets} sets to explore. The most valuable card in the database right now sits at ${price}.`,
+    finalSub: (cards: string, sets: number, price: string | null) =>
+      price
+        ? `${cards} cards across ${sets} sets to explore. The most valuable card in the database right now sits at ${price}.`
+        : `${cards} cards across ${sets} sets to explore. Prices are still being filled in.`,
   },
 
   browse: {
@@ -175,6 +177,7 @@ export const en: Dictionary = {
     colVariant: "Variant",
     colPrice: "Price",
     colChange: "7d",
+    empty: "No prices recorded yet — enter prices in the dashboard and this ranking fills itself in.",
   },
 
   variant: {

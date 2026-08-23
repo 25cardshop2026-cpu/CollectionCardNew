@@ -8,10 +8,7 @@ import {
   VARIANTS as SEED_VARIANTS,
   nmToPsa10,
   psa10ToNm,
-  simulateSeries,
-  simulateSummary,
   slugify,
-  startOfToday,
 } from "./seed";
 import { cache } from "react";
 import {
@@ -128,38 +125,27 @@ function build(overrides: Overrides): Snapshot {
   }
 
   /*
-    แคตตาล็อกมี variant หลายพันตัว ถ้าเก็บราคาย้อนหลัง 90 วันของทุกตัว
-    จะกลายเป็นของหลายแสนชิ้นต่อการสร้างดัชนีหนึ่งครั้ง ซึ่งเกิดขึ้นทุก request
-    จึงเก็บแค่ราคาล่าสุดกับราคาเมื่อ 7 วันก่อน ส่วนกราฟเต็มค่อยสร้างทีละใบ
-    ตอนเปิดหน้ารายละเอียด (ดู getHistory)
+    ราคาทั้งหมดมาจากที่คนกรอกเท่านั้น ใบไหนยังไม่มีใครกรอกก็คือยังไม่มีราคา
+    เว็บจะขึ้นว่า "—" ไม่ใช่เดาตัวเลขให้ เพราะเว็บราคาที่เดาราคาเองเชื่อไม่ได้
+
+    นับเฉพาะราคาตลาดหลัก ราคาจาก eBay/SNKRDUNK เป็นข้อมูลเทียบคนละก้อน
   */
-  const today = startOfToday().toISOString();
   const latestNm = new Map<string, PricePoint>();
   const weekAgoNm = new Map<string, number>();
 
-  for (const variant of variants) {
-    const summary = simulateSummary(variant);
-    let latest: PricePoint = {
-      variantId: variant.id,
-      condition: "NM",
-      priceThb: summary.latest,
-      recordedAt: today,
-    };
-    let weekAgo = summary.weekAgo;
+  for (const [variantId, points] of recordedByVariant) {
+    const market = points.filter(isMarketPrice);
+    if (market.length === 0) continue;
 
-    // ราคาที่แอดมินกรอกทับของสมมติเสมอ และเป็นตัวชี้ว่าอัปเดตล่าสุดเมื่อไหร่
-    // นับเฉพาะราคาตลาดหลัก ราคาจาก eBay/SNKRDUNK เป็นข้อมูลเทียบ ไม่ใช่ราคาหลัก
-    const recorded = (recordedByVariant.get(variant.id) ?? []).filter(isMarketPrice);
-    if (recorded.length > 0) {
-      latest = recorded[recorded.length - 1];
-      const weekMs = 7 * 86400000;
-      const cutoff = new Date(latest.recordedAt).getTime() - weekMs;
-      const earlier = recorded.filter((p) => new Date(p.recordedAt).getTime() <= cutoff);
-      weekAgo = earlier.length > 0 ? earlier[earlier.length - 1].priceThb : summary.weekAgo;
+    const latest = market[market.length - 1];
+    latestNm.set(variantId, latest);
+
+    // ต้องมีราคาที่บันทึกไว้ก่อนหน้าอย่างน้อย 7 วันถึงจะคิด % ขยับได้
+    const cutoff = new Date(latest.recordedAt).getTime() - 7 * 86400000;
+    const earlier = market.filter((p) => new Date(p.recordedAt).getTime() <= cutoff);
+    if (earlier.length > 0) {
+      weekAgoNm.set(variantId, earlier[earlier.length - 1].priceThb);
     }
-
-    latestNm.set(variant.id, latest);
-    weekAgoNm.set(variant.id, weekAgo);
   }
 
   return {
@@ -237,8 +223,9 @@ function currentPrice(variantId: string, condition: Condition): PriceCurrent | n
   if (!latest) return null;
 
   const nm = latest.priceThb;
-  const before = weekAgoNm.get(variantId) ?? nm;
-  const change7d = before > 0 ? ((nm - before) / before) * 100 : null;
+  // ไม่มีราคาเมื่อ 7 วันก่อน = เทียบไม่ได้ ต้องเป็น null ไม่ใช่ 0%
+  const before = weekAgoNm.get(variantId);
+  const change7d = before && before > 0 ? ((nm - before) / before) * 100 : null;
 
   return {
     variantId,
@@ -445,14 +432,10 @@ export function getChannelPrice(
   };
 }
 
-/** กราฟย้อนหลังของ variant เดียว — สร้างตอนเรียก ไม่ได้เก็บไว้ในดัชนี */
+/** กราฟย้อนหลังของ variant เดียว — มีเท่าที่คนกรอกไว้จริง */
 export function getHistory(variantId: string, days = HISTORY_DAYS): PricePoint[] {
-  const state = snap();
-  const variant = state.variantById.get(variantId);
-  if (!variant) return [];
-
-  const recorded = (state.recordedByVariant.get(variantId) ?? []).filter(isMarketPrice);
-  return [...simulateSeries(variant, days), ...recorded]
+  return (snap().recordedByVariant.get(variantId) ?? [])
+    .filter(isMarketPrice)
     .sort((a, b) => a.recordedAt.localeCompare(b.recordedAt))
     .slice(-days);
 }
