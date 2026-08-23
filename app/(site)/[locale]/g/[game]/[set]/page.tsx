@@ -145,9 +145,7 @@ export default async function SetPage({
       </div>
 
       <ul className="grid grid-cols-2 gap-x-5 gap-y-8 sm:grid-cols-3 lg:grid-cols-5">
-        {rows.map(({ card, variants, headline }) => {
-          const special = variants.find((v) => v.variantType !== "normal");
-
+        {rows.map(({ card, headline }) => {
           return (
             <li key={card.id}>
               <Link href={p(`/card/${card.slug}`)} className="group flex flex-col gap-3">
@@ -162,9 +160,9 @@ export default async function SetPage({
                     size="sm"
                     locale={locale}
                   />
-                  {special && (
-                    <span className="font-mono text-[9.5px] uppercase tracking-[0.12em] text-accent">
-                      {t.set.has(t.variant[special.variantType])}
+                  {card.variantType !== "normal" && (
+                    <span className="font-mono text-[9.5px] tracking-[0.12em] text-accent uppercase">
+                      {t.variant[card.variantType]}
                     </span>
                   )}
                 </div>

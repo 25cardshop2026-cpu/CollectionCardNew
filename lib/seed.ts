@@ -227,36 +227,43 @@ export const SETS: CardSet[] = [
 export const CARDS: Card[] = [];
 export const VARIANTS: Variant[] = [];
 
+/**
+ * การ์ดเลขเดียวกันแต่คนละแบบการพิมพ์ (Normal / Alt Art / Manga Rare) แยกเป็น
+ * คนละใบในระบบ เพราะในตลาดมันคือของคนละชิ้น คนละราคา คนละรูป
+ *
+ * id ของการ์ดจึงเป็น "เลขการ์ด:แบบพิมพ์" ซึ่งตรงกับ id ที่ราคาอ้างอิงอยู่แล้ว
+ */
 for (const card of catalog.cards) {
-  CARDS.push({
-    id: card.number,
-    slug: `${slugify(card.number)}-${slugify(card.name)}`,
-    setCode: card.setCode,
-    number: card.number,
-    nameTh: NAME_TH[nameKey(card.name)] ?? card.name,
-    nameEn: card.name,
-    rarity: card.rarity,
-    cardType: titleCase(card.cardType),
-    color: card.color,
-  });
-
-  VARIANTS.push({
-    id: `${card.number}:normal`,
-    cardId: card.number,
-    variantType: "normal",
-    isFoil: false,
-  });
-
   // นับเฉพาะ p (parallel) — r คือการพิมพ์ซ้ำอาร์ตเดิม ไม่ใช่ของสะสมคนละใบ
   const arts = card.printings.filter((p) => p.startsWith("p"));
-  arts.slice(0, PRINTING_TYPES.length).forEach((_, index) => {
-    const variantType = PRINTING_TYPES[index];
-    VARIANTS.push({
-      id: `${card.number}:${variantType}`,
-      cardId: card.number,
-      variantType,
-      isFoil: true,
-    });
-  });
+  const printings: VariantType[] = [
+    "normal",
+    ...arts.slice(0, PRINTING_TYPES.length).map((_, index) => PRINTING_TYPES[index]),
+  ];
 
+  for (const variantType of printings) {
+    const id = `${card.number}:${variantType}`;
+    // ใบธรรมดายังใช้ slug เดิม ลิงก์เก่าจึงไม่ตาย ส่วนใบพิเศษต่อท้ายด้วยแบบพิมพ์
+    const base = `${slugify(card.number)}-${slugify(card.name)}`;
+
+    CARDS.push({
+      id,
+      slug: variantType === "normal" ? base : `${base}-${slugify(variantType)}`,
+      setCode: card.setCode,
+      number: card.number,
+      nameTh: NAME_TH[nameKey(card.name)] ?? card.name,
+      nameEn: card.name,
+      rarity: card.rarity,
+      cardType: titleCase(card.cardType),
+      color: card.color,
+      variantType,
+    });
+
+    VARIANTS.push({
+      id,
+      cardId: id,
+      variantType,
+      isFoil: variantType !== "normal",
+    });
+  }
 }

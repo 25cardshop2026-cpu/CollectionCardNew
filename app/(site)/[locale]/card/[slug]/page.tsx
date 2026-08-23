@@ -84,13 +84,8 @@ export default async function CardPage({
   const variants = getVariants(card.id);
   const tier = rarityTier(card.rarity);
 
-  // เลือก variant ที่แพงที่สุดมาขึ้นกราฟ เพราะเป็นตัวที่คนเข้ามาดู
-  const headlineVariant =
-    [...variants].sort(
-      (a, b) =>
-        (getCurrentPrice(b.id, "NM")?.priceThb ?? 0) -
-        (getCurrentPrice(a.id, "NM")?.priceThb ?? 0),
-    )[0] ?? variants[0];
+  // การ์ดหนึ่งใบ = แบบพิมพ์เดียว ราคากับกราฟจึงเป็นของใบนี้ตรง ๆ
+  const headlineVariant = variants[0];
 
   const headlinePrice = headlineVariant ? getCurrentPrice(headlineVariant.id, "NM") : null;
   const psaPrice = headlineVariant ? getCurrentPrice(headlineVariant.id, "PSA10") : null;
@@ -148,6 +143,10 @@ export default async function CardPage({
           <CardArt card={card} className="w-full" />
           <div className="flex flex-wrap gap-1.5">
             <Chip tone="accent">{card.rarity}</Chip>
+            {/* ใบนี้เป็นอาร์ตแบบไหน — คนละแบบคือคนละใบ คนละราคา */}
+            {card.variantType !== "normal" && (
+              <Chip tone="accent">{t.variant[card.variantType]}</Chip>
+            )}
             <Chip tone="quiet">{t.tier[tier]}</Chip>
             <Chip tone="quiet">{cardTypeLabel(card.cardType, t)}</Chip>
             <Chip tone="quiet">{colorLabel(card.color, t)}</Chip>
@@ -170,7 +169,7 @@ export default async function CardPage({
           {headlinePrice && headlineVariant && (
             <section className="flex flex-col gap-3">
               <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-3">
-                {t.variant[headlineVariant.variantType]} · {t.card.conditionNm}
+                {t.variant[card.variantType]} · {t.card.conditionNm}
               </span>
               <div className="flex flex-wrap items-baseline gap-5">
                 <span className="neon-num font-mono text-[clamp(2.25rem,7vw,3.5rem)] font-medium leading-none tabular-nums tracking-[-0.03em]">
@@ -294,8 +293,8 @@ export default async function CardPage({
               <table className="w-full text-[13.5px]">
                 <thead>
                   <tr className="border-b border-line">
-                    <th className="px-5 py-3.5 text-left font-mono text-[9.5px] font-normal uppercase tracking-[0.12em] text-ink-3">
-                      Variant
+                    <th className="px-5 py-3.5 text-left font-mono text-[9.5px] font-normal tracking-[0.12em] text-ink-3 uppercase">
+                      {t.card.printing}
                     </th>
                     {CONDITIONS.map((condition) => (
                       <th
@@ -362,6 +361,11 @@ export default async function CardPage({
                   <span className="text-[12.5px] leading-snug transition-colors group-hover:text-accent">
                     {cardName(sibling, locale)}
                   </span>
+                  {sibling.variantType !== "normal" && (
+                    <span className="font-mono text-[9px] tracking-[0.1em] text-accent uppercase">
+                      {t.variant[sibling.variantType]}
+                    </span>
+                  )}
                   <PriceTag
                     priceThb={headline?.priceThb ?? null}
                     size="sm"

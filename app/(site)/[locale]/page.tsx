@@ -39,7 +39,7 @@ export default async function LandingPage({
 
   const numbers = [
     { value: formatNumber(stats.cards, locale), label: t.landing.statCards },
-    { value: formatNumber(stats.variants, locale), label: t.landing.statVariants },
+    { value: formatNumber(stats.numbers, locale), label: t.landing.statVariants },
     { value: stats.sets.toString(), label: t.landing.statSets },
     { value: HISTORY_DAYS.toString(), label: t.landing.statHistory },
   ];

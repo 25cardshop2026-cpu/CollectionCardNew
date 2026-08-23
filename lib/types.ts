@@ -57,6 +57,11 @@ export interface Card {
   rarity: string;
   cardType: string;
   color: string;
+  /**
+   * แบบการพิมพ์ของใบนี้ — การ์ดเลขเดียวกันแต่คนละอาร์ตคือคนละใบ คนละราคา
+   * จึงแยกเป็นคนละแถวในระบบ ไม่ได้ยุบรวมกันด้วยเลขการ์ด
+   */
+  variantType: VariantType;
   /** URL รูปที่แอดมินอัปโหลดเอง ไม่มี = ใช้ผิวฟอยล์แทนรูป */
   imageUrl?: string;
 }

@@ -20,6 +20,7 @@ import {
   type LoadedOverrides,
   type Overrides,
 } from "./overrides";
+import { VARIANT_LABEL } from "./types";
 import type {
   Card,
   CardSet,
@@ -115,7 +116,7 @@ function build(overrides: Overrides): Snapshot {
 
   const recordedByVariant = new Map<string, PricePoint[]>();
   for (const point of overrides.pricePoints) {
-    if (!liveCardIds.has(point.variantId.split(":")[0])) continue;
+    if (!liveCardIds.has(point.variantId)) continue;
     const list = recordedByVariant.get(point.variantId) ?? [];
     list.push(point);
     recordedByVariant.set(point.variantId, list);
@@ -564,6 +565,8 @@ export interface AdminStats {
   games: number;
   sets: number;
   cards: number;
+  /** จำนวนเลขการ์ดที่ไม่ซ้ำ — น้อยกว่าจำนวนใบ เพราะใบพิเศษใช้เลขเดิม */
+  numbers: number;
   variants: number;
   stale: number;
   lastUpdated: string | null;
@@ -592,6 +595,7 @@ export function getAdminStats(): AdminStats {
     games: GAMES.length,
     sets: state.sets.length,
     cards: state.cards.length,
+    numbers: new Set(state.cards.map((card) => card.number)).size,
     variants: state.variants.length,
     stale,
     lastUpdated,
@@ -734,39 +738,49 @@ export async function createCard(input: NewCardInput): Promise<Result<Card>> {
   if (!state.setByCode.has(input.setCode)) return { ok: false, error: "ไม่พบชุดนี้" };
   if (!number) return { ok: false, error: "ต้องระบุเลขการ์ด" };
   if (!input.nameTh.trim()) return { ok: false, error: "ต้องระบุชื่อการ์ดภาษาไทย" };
-  if (state.cardById.has(number)) return { ok: false, error: `มีการ์ดเลข ${number} อยู่แล้ว` };
 
   const nameEn = input.nameEn.trim() || input.nameTh.trim();
-  const card: Card = {
-    id: number,
-    slug: `${slugify(number)}-${slugify(nameEn)}`,
-    setCode: input.setCode,
-    number,
-    nameTh: input.nameTh.trim(),
-    nameEn,
-    rarity: input.rarity.trim() || "C",
-    cardType: input.cardType.trim() || "Character",
-    color: input.color.trim() || "ไม่ระบุ",
-  };
+  const base = `${slugify(number)}-${slugify(nameEn)}`;
 
-  // slug คือ URL ถาวร ห้ามชนกัน
-  if (state.cardBySlug.has(card.slug)) card.slug = `${card.slug}-${slugify(input.setCode)}`;
+  // เลือกแบบพิมพ์ไว้กี่แบบก็ได้การ์ดเท่านั้นใบ เพราะแต่ละแบบคือของคนละชิ้น
+  const printings: VariantType[] = [...new Set<VariantType>(["normal", ...input.variantTypes])];
 
-  const types: VariantType[] = [...input.variantTypes];
-  if (!types.includes("normal")) types.unshift("normal");
+  const made: Card[] = [];
+  for (const variantType of printings) {
+    const id = `${number}:${variantType}`;
+    if (state.cardById.has(id)) {
+      return { ok: false, error: `มีการ์ด ${number} แบบ ${VARIANT_LABEL[variantType]} อยู่แล้ว` };
+    }
+
+    const slug = variantType === "normal" ? base : `${base}-${slugify(variantType)}`;
+    made.push({
+      id,
+      // slug คือ URL ถาวร ห้ามชนกัน
+      slug: state.cardBySlug.has(slug) ? `${slug}-${slugify(input.setCode)}` : slug,
+      setCode: input.setCode,
+      number,
+      nameTh: input.nameTh.trim(),
+      nameEn,
+      rarity: input.rarity.trim() || "C",
+      cardType: input.cardType.trim() || "Character",
+      color: input.color.trim() || "ไม่ระบุ",
+      variantType,
+    });
+  }
 
   const ok = await commit((draft) => {
-    draft.cards.push(card);
-    for (const variantType of types) {
+    for (const card of made) {
+      draft.cards.push(card);
       draft.variants.push({
-        id: `${number}:${variantType}`,
-        cardId: number,
-        variantType,
-        isFoil: variantType !== "normal",
+        id: card.id,
+        cardId: card.id,
+        variantType: card.variantType,
+        isFoil: card.variantType !== "normal",
       });
     }
+
     if (input.priceThb && input.priceThb > 0) {
-      // ตั้งราคาให้ variant ปกติ ส่วนตัวพิเศษให้ไปกรอกในหน้าอัปเดตราคา
+      // ราคาที่กรอกตอนสร้างเป็นของใบธรรมดา ใบพิเศษไปกรอกในหน้าอัปเดตราคา
       draft.pricePoints.push({
         variantId: `${number}:normal`,
         condition: "NM",
@@ -777,7 +791,7 @@ export async function createCard(input: NewCardInput): Promise<Result<Card>> {
   });
 
   if (!ok) return { ok: false, error: NOT_WRITABLE };
-  return { ok: true, value: card };
+  return { ok: true, value: made[0] };
 }
 
 export async function updateCard(

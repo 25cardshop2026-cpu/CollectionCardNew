@@ -38,8 +38,8 @@ export const th = {
     freeNote: "เปิดใช้ฟรี ไม่ต้องสมัครสมาชิก",
     showcaseLabel: "ขยับแรงที่สุดใน 7 วัน",
 
-    statCards: "การ์ดในฐานข้อมูล",
-    statVariants: "เวอร์ชันที่แยกราคา",
+    statCards: "ใบการ์ดที่แยกราคา",
+    statVariants: "เลขการ์ดทั้งหมด",
     statSets: "ชุดการ์ดในระบบ",
     statHistory: "วันของราคาย้อนหลัง",
 
@@ -136,6 +136,7 @@ export const th = {
     updated: "อัปเดต",
     historyTitle: "ราคาย้อนหลัง 90 วัน",
     historyLabel: (name: string) => `กราฟราคาย้อนหลัง 90 วันของ ${name}`,
+    printing: "แบบพิมพ์",
     priceTableTitle: "ราคาแยกตามเวอร์ชันและสภาพ",
     psaLabel: "PSA 10",
     psaNote: "ใบส่งเกรดได้ 10 เต็ม",

@@ -77,6 +77,11 @@ export default async function SearchPage({
                     <span className="font-mono text-[10.5px] tracking-[0.06em] text-ink-3">
                       {card.number} · {set.code}
                     </span>
+                    {card.variantType !== "normal" && (
+                      <span className="font-mono text-[9.5px] tracking-[0.12em] text-accent uppercase">
+                        {t.variant[card.variantType]}
+                      </span>
+                    )}
                     <span className="text-[13.5px] leading-snug transition-colors group-hover:text-accent">
                       {cardName(card, locale)}
                     </span>

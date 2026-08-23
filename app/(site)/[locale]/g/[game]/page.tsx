@@ -69,7 +69,9 @@ export default async function GamePage({
 
       <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {sets.map((set) => {
-          const inDb = listCardsInSet(set.code).length;
+          // นับเลขการ์ดที่มีในระบบ ไม่ใช่จำนวนใบ เพราะใบพิเศษใช้เลขเดิม
+          // ถ้านับใบจะเกิน 100% ของชุดทันทีที่มีอาร์ตพิเศษ
+          const inDb = new Set(listCardsInSet(set.code).map((row) => row.card.number)).size;
           const pct = set.totalCards > 0 ? Math.round((inDb / set.totalCards) * 100) : 0;
 
           return (

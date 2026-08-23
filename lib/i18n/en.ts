@@ -34,8 +34,8 @@ export const en: Dictionary = {
     freeNote: "Free to use, no account needed",
     showcaseLabel: "Biggest movers, 7 days",
 
-    statCards: "Cards in the database",
-    statVariants: "Separately priced variants",
+    statCards: "Separately priced cards",
+    statVariants: "Distinct card numbers",
     statSets: "Sets in the database",
     statHistory: "Days of price history",
 
@@ -133,6 +133,7 @@ export const en: Dictionary = {
     updated: "Updated",
     historyTitle: "90-day price history",
     historyLabel: (name: string) => `90-day price history chart for ${name}`,
+    printing: "Printing",
     priceTableTitle: "Price by variant and condition",
     psaLabel: "PSA 10",
     psaNote: "graded gem mint",

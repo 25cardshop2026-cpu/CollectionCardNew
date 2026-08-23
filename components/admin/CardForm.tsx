@@ -97,9 +97,9 @@ export function CardForm({
       {!isEdit && (
         <>
           <CheckboxGroup
-            label="เวอร์ชันที่มี"
+            label="แบบพิมพ์ที่มี"
             name="variants"
-            hint="Normal ถูกสร้างให้เสมอ เวอร์ชันพิเศษจะไปตั้งราคาต่อในหน้าอัปเดตราคา"
+            hint="แต่ละแบบถูกสร้างเป็นการ์ดคนละใบ มีหน้าและราคาของตัวเอง — Normal สร้างให้เสมอ"
             options={VARIANT_OPTIONS.map((type) => ({
               value: type,
               label: VARIANT_LABEL[type],
