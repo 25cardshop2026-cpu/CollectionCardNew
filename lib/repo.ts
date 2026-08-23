@@ -5,10 +5,12 @@ import {
   HISTORY_DAYS,
   SETS as SEED_SETS,
   VARIANTS as SEED_VARIANTS,
-  buildHistory,
   nmToPsa10,
   psa10ToNm,
+  simulateSeries,
+  simulateSummary,
   slugify,
+  startOfToday,
 } from "./seed";
 import { cache } from "react";
 import {
@@ -66,7 +68,8 @@ interface Snapshot {
   sets: CardSet[];
   cards: Card[];
   variants: Variant[];
-  history: PricePoint[];
+  /** ราคาที่แอดมินกรอกเอง แยกตาม variant — ของสมมติไม่ได้เก็บไว้ตรงนี้ */
+  recordedByVariant: Map<string, PricePoint[]>;
   cardById: Map<string, Card>;
   cardBySlug: Map<string, Card>;
   setByCode: Map<string, CardSet>;
@@ -104,10 +107,6 @@ function build(overrides: Overrides): Snapshot {
     liveCardIds.has(variant.cardId),
   );
 
-  const history = [...buildHistory(), ...overrides.pricePoints].filter((point) =>
-    liveCardIds.has(point.variantId.split(":")[0]),
-  );
-
   const variantsByCard = new Map<string, Variant[]>();
   for (const variant of variants) {
     const list = variantsByCard.get(variant.cardId) ?? [];
@@ -115,26 +114,56 @@ function build(overrides: Overrides): Snapshot {
     variantsByCard.set(variant.cardId, list);
   }
 
-  const byVariant = new Map<string, PricePoint[]>();
-  for (const point of history) {
-    const list = byVariant.get(point.variantId) ?? [];
+  const recordedByVariant = new Map<string, PricePoint[]>();
+  for (const point of overrides.pricePoints) {
+    if (!liveCardIds.has(point.variantId.split(":")[0])) continue;
+    const list = recordedByVariant.get(point.variantId) ?? [];
     list.push(point);
-    byVariant.set(point.variantId, list);
+    recordedByVariant.set(point.variantId, list);
+  }
+  for (const list of recordedByVariant.values()) {
+    list.sort((a, b) => a.recordedAt.localeCompare(b.recordedAt));
   }
 
+  /*
+    แคตตาล็อกมี variant หลายพันตัว ถ้าเก็บราคาย้อนหลัง 90 วันของทุกตัว
+    จะกลายเป็นของหลายแสนชิ้นต่อการสร้างดัชนีหนึ่งครั้ง ซึ่งเกิดขึ้นทุก request
+    จึงเก็บแค่ราคาล่าสุดกับราคาเมื่อ 7 วันก่อน ส่วนกราฟเต็มค่อยสร้างทีละใบ
+    ตอนเปิดหน้ารายละเอียด (ดู getHistory)
+  */
+  const today = startOfToday().toISOString();
   const latestNm = new Map<string, PricePoint>();
   const weekAgoNm = new Map<string, number>();
-  for (const [variantId, points] of byVariant) {
-    points.sort((a, b) => a.recordedAt.localeCompare(b.recordedAt));
-    latestNm.set(variantId, points[points.length - 1]);
-    weekAgoNm.set(variantId, points[Math.max(0, points.length - 8)].priceThb);
+
+  for (const variant of variants) {
+    const summary = simulateSummary(variant);
+    let latest: PricePoint = {
+      variantId: variant.id,
+      condition: "NM",
+      priceThb: summary.latest,
+      recordedAt: today,
+    };
+    let weekAgo = summary.weekAgo;
+
+    // ราคาที่แอดมินกรอกทับของสมมติเสมอ และเป็นตัวชี้ว่าอัปเดตล่าสุดเมื่อไหร่
+    const recorded = recordedByVariant.get(variant.id);
+    if (recorded && recorded.length > 0) {
+      latest = recorded[recorded.length - 1];
+      const weekMs = 7 * 86400000;
+      const cutoff = new Date(latest.recordedAt).getTime() - weekMs;
+      const earlier = recorded.filter((p) => new Date(p.recordedAt).getTime() <= cutoff);
+      weekAgo = earlier.length > 0 ? earlier[earlier.length - 1].priceThb : summary.weekAgo;
+    }
+
+    latestNm.set(variant.id, latest);
+    weekAgoNm.set(variant.id, weekAgo);
   }
 
   return {
     sets,
     cards,
     variants,
-    history,
+    recordedByVariant,
     cardById: new Map(cards.map((c) => [c.id, c])),
     cardBySlug: new Map(cards.map((c) => [c.slug, c])),
     setByCode: new Map(sets.map((s) => [s.code, s])),
@@ -314,9 +343,14 @@ export function getCurrentPrice(variantId: string, condition: Condition): PriceC
   return currentPrice(variantId, condition);
 }
 
+/** กราฟย้อนหลังของ variant เดียว — สร้างตอนเรียก ไม่ได้เก็บไว้ในดัชนี */
 export function getHistory(variantId: string, days = HISTORY_DAYS): PricePoint[] {
-  return snap()
-    .history.filter((p) => p.variantId === variantId)
+  const state = snap();
+  const variant = state.variantById.get(variantId);
+  if (!variant) return [];
+
+  const recorded = state.recordedByVariant.get(variantId) ?? [];
+  return [...simulateSeries(variant, days), ...recorded]
     .sort((a, b) => a.recordedAt.localeCompare(b.recordedAt))
     .slice(-days);
 }

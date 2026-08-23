@@ -20,7 +20,8 @@ export const en: Dictionary = {
   footer: {
     blurb:
       "A card price database built for collectors, with prices separated by variant and condition rather than lumped into one number.",
-    phase: "Phase P0 · Sample data for structure demo, not real market prices",
+    phase:
+      "Card data from the official One Piece Card Game site · prices are still demo data, not real market prices",
   },
 
   landing: {

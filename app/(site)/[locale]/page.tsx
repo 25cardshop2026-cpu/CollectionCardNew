@@ -32,9 +32,11 @@ export default async function LandingPage({
 
   const movers = listMovers(3);
 
+  // ลิงก์การ์ดต้องมาจากของที่มีจริงในระบบ ไม่ใช่เลขการ์ดที่พิมพ์ทิ้งไว้
+  // เพราะแคตตาล็อกเปลี่ยนได้ทุกครั้งที่ดึงข้อมูลใหม่ แล้วลิงก์ตายจะไม่มีใครรู้
   const featureLinks = [
-    p("/card/op01-120-shanks"),
-    p("/card/op01-060-boa-hancock"),
+    showcase[0] ? p(`/card/${showcase[0].card.slug}`) : p("/browse"),
+    showcase[1] ? p(`/card/${showcase[1].card.slug}`) : p("/browse"),
     p("/movers"),
     p("/browse"),
   ];
