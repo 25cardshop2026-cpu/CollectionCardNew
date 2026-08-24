@@ -13,24 +13,10 @@ import {
   setFeaturedCards,
   updateCard,
 } from "./repo";
-import { requireAdmin } from "./session";
 import { VARIANT_LABEL, type Language, type VariantType } from "./types";
 
 export interface FormState {
   error?: string;
-}
-
-/**
- * server action ทุกตัวในไฟล์นี้แก้ข้อมูลจริงของเว็บ
- *
- * Next.js เปิด endpoint ให้ action เหล่านี้เรียกได้ตรงจากภายนอก ไม่ต้องผ่าน
- * หน้าจอที่เรารู้ว่ากันไว้แล้ว การกันที่ layout ของแดชบอร์ดจึงไม่พอ
- * ทุกตัวต้องถามสิทธิ์เองก่อนลงมือ
- */
-const NOT_ADMIN = "ต้องเข้าสู่ระบบด้วยบัญชีแอดมินก่อน";
-
-async function isAdmin(): Promise<boolean> {
-  return (await requireAdmin()) !== null;
 }
 
 function text(form: FormData, key: string): string {
@@ -51,8 +37,6 @@ export async function createCardAction(
   _prev: FormState,
   form: FormData,
 ): Promise<FormState> {
-  if (!(await isAdmin())) return { error: NOT_ADMIN };
-
   await loadState();
 
   const setCode = text(form, "setCode");
@@ -91,8 +75,6 @@ export async function updateCardAction(
   _prev: FormState,
   form: FormData,
 ): Promise<FormState> {
-  if (!(await isAdmin())) return { error: NOT_ADMIN };
-
   await loadState();
 
   const id = text(form, "id");
@@ -115,8 +97,6 @@ export async function updateCardAction(
 }
 
 export async function deleteCardAction(form: FormData): Promise<void> {
-  if (!(await isAdmin())) redirect("/admin");
-
   await loadState();
 
   const id = text(form, "id");
@@ -133,8 +113,6 @@ export async function createSetAction(
   _prev: FormState,
   form: FormData,
 ): Promise<FormState> {
-  if (!(await isAdmin())) return { error: NOT_ADMIN };
-
   await loadState();
 
   const language = text(form, "language") === "EN" ? "EN" : "JP";
@@ -164,8 +142,6 @@ export async function createSetAction(
 }
 
 export async function deleteSetAction(form: FormData): Promise<void> {
-  if (!(await isAdmin())) redirect("/admin");
-
   await loadState();
 
   const code = text(form, "code");
@@ -193,8 +169,6 @@ function backTo(form: FormData, cardId: string): string {
  * ไม่ต้องมี API upload แยก และไม่ต้องเปิดที่เก็บให้เขียนจากเบราว์เซอร์
  */
 export async function uploadCardImageAction(form: FormData): Promise<void> {
-  if (!(await isAdmin())) redirect("/admin");
-
   const id = text(form, "id");
   const file = form.get("image");
 
@@ -223,8 +197,6 @@ export async function uploadCardImageAction(form: FormData): Promise<void> {
 }
 
 export async function removeCardImageAction(form: FormData): Promise<void> {
-  if (!(await isAdmin())) redirect("/admin");
-
   const id = text(form, "id");
 
   await loadState();
@@ -241,8 +213,6 @@ export async function setFeaturedCardsAction(
   _prev: FormState,
   form: FormData,
 ): Promise<FormState> {
-  if (!(await isAdmin())) return { error: NOT_ADMIN };
-
   await loadState();
 
   const ids = form

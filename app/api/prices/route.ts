@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/session";
 import { canPersist, getAdminPrices, loadState, setPrice } from "@/lib/repo";
 import { CHANNELS, CONDITIONS, type Condition, type PriceSource } from "@/lib/types";
 
@@ -10,11 +9,6 @@ function isCondition(value: unknown): value is Condition {
 }
 
 export async function POST(request: Request) {
-  // API นี้เขียนราคาจริงของเว็บ ใครยิงตรงเข้ามาก็ต้องผ่านด่านเดียวกับแดชบอร์ด
-  if (!(await requireAdmin())) {
-    return NextResponse.json({ error: "ต้องเข้าสู่ระบบด้วยบัญชีแอดมินก่อน" }, { status: 403 });
-  }
-
   let body: unknown;
 
   try {
