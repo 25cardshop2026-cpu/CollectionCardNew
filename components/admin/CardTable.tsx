@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { deleteCardAction } from "@/lib/actions";
+import { TIER_SURFACE, rarityTier } from "@/lib/rarity";
 
 /**
  * ตารางจัดการการ์ดของทั้งชุด — เป็นหน้าเดียวที่ทำงานประจำวันได้ครบ
@@ -45,12 +46,44 @@ export interface CardTableRow {
   rarity: string;
   variantLabel: string;
   sourceUrl: string;
+  /** รูปที่อัปโหลดไว้ — ว่าง = ยังไม่มีรูป โชว์ผิวฟอยล์ตามความหายากแทน */
+  imageUrl: string;
   prices: Record<PriceField, number | null>;
   /** ราคาตลาดหลักเก่ากี่วันแล้ว — null = ยังไม่เคยมีราคา */
   staleDays: number | null;
 }
 
 type Status = "idle" | "saving" | "saved" | "error";
+
+/**
+ * รูปการ์ดในสัดส่วนเดียวกับการ์ดจริง ใช้ทั้งรูปย่อในตารางและรูปขยายในกล่อง
+ *
+ * ไม่ได้ใช้ <CardArt> ของหน้าเว็บสาธารณะ เพราะตัวนั้นวางเลขการ์ดกับ rarity
+ * ทับบนรูป ซึ่งพอย่อเหลือ 36px แล้วอ่านไม่ออกและบังรูปจนดูไม่รู้เรื่อง
+ */
+function CardImage({
+  row,
+  className = "",
+}: {
+  row: CardTableRow;
+  className?: string;
+}) {
+  return (
+    <span
+      className={`card-face ${TIER_SURFACE[rarityTier(row.rarity)]} block aspect-[5/7] ${className}`}
+    >
+      {row.imageUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={row.imageUrl}
+          alt={`${row.number} ${row.nameTh}`}
+          loading="lazy"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+      )}
+    </span>
+  );
+}
 
 /** ค่าที่ควรอยู่ในช่องกรอกตอนเปิดหน้า */
 function initialPrices(rows: CardTableRow[]): Record<string, string> {
@@ -83,6 +116,24 @@ export function CardTable({ rows, setCode }: { rows: CardTableRow[]; setCode: st
 
   // ref ของช่องราคาทุกช่อง เพื่อให้ Enter / ลูกศรกระโดดไปแถวถัดไปในคอลัมน์เดิมได้
   const inputs = useRef<Record<string, HTMLInputElement | null>>({});
+
+  /*
+    กล่องดูรูปขยาย ใช้ <dialog> ของเบราว์เซอร์ตรง ๆ ผ่าน showModal()
+    เพราะได้ปุ่ม Esc ปิด การล็อกโฟกัสไว้ในกล่อง และฉากหลังมาให้ครบ
+    โดยไม่ต้องเขียน event listener เองให้พลาดได้
+
+    ปิดแล้ว zoomed ยังค้างเป็นใบล่าสุดที่เปิดดู ไม่ได้ล้างทิ้ง — ไม่มีผลอะไร
+    เพราะกล่องที่ปิดอยู่ถูกซ่อนทั้งก้อน และ openZoom ตั้งใบใหม่ก่อนเปิดเสมอ
+    (ไม่ได้ล้างผ่าน onClose เพราะ event "close" ของ dialog ไม่ bubble
+    React จึงไม่ส่งต่อมาให้ — จะล้างต้องผูก listener เองซึ่งไม่คุ้ม)
+  */
+  const dialog = useRef<HTMLDialogElement>(null);
+  const [zoomed, setZoomed] = useState<CardTableRow | null>(null);
+
+  function openZoom(row: CardTableRow) {
+    setZoomed(row);
+    dialog.current?.showModal();
+  }
 
   const focusCell = (field: PriceField, index: number) => {
     const clamped = Math.max(0, Math.min(rows.length - 1, index));
@@ -199,11 +250,52 @@ export function CardTable({ rows, setCode }: { rows: CardTableRow[]; setCode: st
 
   return (
     <div className="flex flex-col gap-3">
+      {/* คลิกฉากหลังเพื่อปิด — เทียบ target กับตัว dialog เอง เพราะคลิกที่รูป
+          ข้างในจะ bubble ขึ้นมาถึงตรงนี้เหมือนกัน ถ้าไม่เทียบจะปิดทันทีที่แตะรูป */}
+      <dialog
+        ref={dialog}
+        onClick={(e) => {
+          if (e.target === dialog.current) dialog.current?.close();
+        }}
+        className="bg-transparent p-4 backdrop:bg-black/80 backdrop:backdrop-blur-sm"
+      >
+        {zoomed && (
+          <div className="flex flex-col items-center gap-4">
+            <CardImage row={zoomed} className="w-[min(78vw,340px)]" />
+
+            <div className="flex flex-col items-center gap-1 text-center">
+              <span className="font-mono text-[11px] tracking-[0.08em] text-ink-3">
+                {zoomed.number} · {zoomed.variantLabel} · {zoomed.rarity}
+              </span>
+              <span className="text-[15px] text-ink">{zoomed.nameTh}</span>
+              <span className="text-[12.5px] text-ink-3">{zoomed.nameEn}</span>
+            </div>
+
+            <div className="flex items-center gap-4 text-[12.5px]">
+              <Link href={`/admin/cards/${zoomed.cardId}`} className="text-accent hover:underline">
+                เปลี่ยนรูป
+              </Link>
+              <Link href={`/card/${zoomed.slug}`} className="text-ink-3 hover:text-accent">
+                ดูหน้าการ์ด
+              </Link>
+              <button
+                type="button"
+                onClick={() => dialog.current?.close()}
+                className="text-ink-3 hover:text-accent"
+              >
+                ปิด (Esc)
+              </button>
+            </div>
+          </div>
+        )}
+      </dialog>
+
       <div className="overflow-x-auto rounded-lg border border-line bg-surface">
         <table className="w-full text-[13.5px]">
           <thead>
             <tr className="border-b border-line">
               <th className={`${headClass} text-left`}>เลขการ์ด</th>
+              <th className={`${headClass} text-left`}>รูป</th>
               <th className={`${headClass} text-left`}>ชื่อ · ลิงก์ต้นทาง</th>
               <th className={`${headClass} text-left`}>Rarity</th>
               <th className={`${headClass} text-left`}>เวอร์ชัน</th>
@@ -235,9 +327,32 @@ export function CardTable({ rows, setCode }: { rows: CardTableRow[]; setCode: st
                   </td>
 
                   <td className="px-3 py-2.5">
+                    {/* ใบที่ยังไม่มีรูป ให้กดแล้วพาไปหน้าอัปโหลดเลย ไม่ต้องขยาย
+                        ผิวฟอยล์เปล่า ๆ มาดู ซึ่งไม่ได้บอกอะไรเพิ่ม */}
+                    {row.imageUrl ? (
+                      <button
+                        type="button"
+                        onClick={() => openZoom(row)}
+                        aria-label={`ดูรูปขยายของ ${row.number} ${row.nameTh}`}
+                        className="block w-9 rounded-[5px] transition-transform hover:scale-110 focus-visible:scale-110"
+                      >
+                        <CardImage row={row} />
+                      </button>
+                    ) : (
+                      <Link
+                        href={`/admin/cards/${row.cardId}`}
+                        title="ยังไม่มีรูป — กดเพื่อไปอัปโหลด"
+                        className="flex aspect-[5/7] w-9 items-center justify-center rounded-[5px] border border-dashed border-line-strong font-mono text-[9px] text-ink-3 hover:border-accent hover:text-accent"
+                      >
+                        + รูป
+                      </Link>
+                    )}
+                  </td>
+
+                  <td className="px-3 py-2.5">
                     {/* จำกัดความกว้างคอลัมน์ชื่อไว้ ไม่งั้นการ์ดที่ชื่อยาวมาก
                         จะดันช่องราคาหลุดออกนอกจอจนต้องเลื่อนตารางตลอดเวลา */}
-                    <div className="flex w-[280px] flex-col gap-1.5">
+                    <div className="flex w-[250px] flex-col gap-1.5">
                       <span className="leading-snug">
                         <Link href={`/card/${row.slug}`} className="hover:text-accent">
                           {row.nameTh}

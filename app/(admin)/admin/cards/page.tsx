@@ -33,6 +33,7 @@ export default async function AdminCardsPage({
         rarity: row.card.rarity,
         variantLabel: VARIANT_LABEL[row.card.variantType],
         sourceUrl: row.card.sourceUrl ?? "",
+        imageUrl: row.card.imageUrl ?? "",
         prices: row.prices,
         staleDays: row.staleDays,
       }))
