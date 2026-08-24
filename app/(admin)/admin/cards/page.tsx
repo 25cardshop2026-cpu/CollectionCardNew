@@ -133,6 +133,16 @@ export default async function AdminCardsPage({
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap">
                       <div className="flex items-center justify-end gap-3">
+                        {card.sourceUrl && (
+                          <a
+                            href={card.sourceUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[12.5px] text-accent hover:underline"
+                          >
+                            ต้นทาง ↗
+                          </a>
+                        )}
                         <Link
                           href={`/admin/cards/${card.id}`}
                           className="text-[12.5px] text-ink-3 hover:text-accent"

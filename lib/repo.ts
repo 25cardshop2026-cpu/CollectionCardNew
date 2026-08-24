@@ -729,6 +729,29 @@ export interface NewCardInput {
   color: string;
   variantTypes: VariantType[];
   priceThb: number | null;
+  sourceUrl: string;
+}
+
+/**
+ * ตรวจลิงก์ต้นทางราคา — ว่างได้ (แปลว่ายังไม่ได้ผูกต้นทาง) แต่ถ้ากรอกมา
+ * ต้องเป็น http/https จริง ๆ ไม่งั้นลิงก์ที่กดไม่ได้จะไปนั่งอยู่ในตารางเฉย ๆ
+ * และ javascript: กับ data: ต้องกันไว้ตั้งแต่ตอนบันทึก เพราะปลายทางคือ href
+ */
+function cleanSourceUrl(raw: string): Result<string> {
+  const value = raw.trim();
+  if (!value) return { ok: true, value: "" };
+
+  let parsed: URL;
+  try {
+    parsed = new URL(value);
+  } catch {
+    return { ok: false, error: "ลิงก์ต้นทางต้องขึ้นต้นด้วย http:// หรือ https://" };
+  }
+
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    return { ok: false, error: "ลิงก์ต้นทางต้องขึ้นต้นด้วย http:// หรือ https://" };
+  }
+  return { ok: true, value: parsed.toString() };
 }
 
 export async function createCard(input: NewCardInput): Promise<Result<Card>> {
@@ -738,6 +761,9 @@ export async function createCard(input: NewCardInput): Promise<Result<Card>> {
   if (!state.setByCode.has(input.setCode)) return { ok: false, error: "ไม่พบชุดนี้" };
   if (!number) return { ok: false, error: "ต้องระบุเลขการ์ด" };
   if (!input.nameTh.trim()) return { ok: false, error: "ต้องระบุชื่อการ์ดภาษาไทย" };
+
+  const sourceUrl = cleanSourceUrl(input.sourceUrl);
+  if (!sourceUrl.ok) return sourceUrl;
 
   const nameEn = input.nameEn.trim() || input.nameTh.trim();
   const base = `${slugify(number)}-${slugify(nameEn)}`;
@@ -765,6 +791,9 @@ export async function createCard(input: NewCardInput): Promise<Result<Card>> {
       cardType: input.cardType.trim() || "Character",
       color: input.color.trim() || "ไม่ระบุ",
       variantType,
+      // ทุกแบบพิมพ์ของเลขเดียวกันเริ่มจากลิงก์ต้นทางเดียวกัน แล้วค่อยแก้ทีละใบ
+      // ในหน้าแก้ไขได้ ถ้าแต่ละแบบมีหน้าขายของตัวเอง
+      ...(sourceUrl.value ? { sourceUrl: sourceUrl.value } : {}),
     });
   }
 
@@ -796,7 +825,9 @@ export async function createCard(input: NewCardInput): Promise<Result<Card>> {
 
 export async function updateCard(
   id: string,
-  patch: Partial<Pick<Card, "nameTh" | "nameEn" | "rarity" | "cardType" | "color">>,
+  patch: Partial<
+    Pick<Card, "nameTh" | "nameEn" | "rarity" | "cardType" | "color" | "sourceUrl">
+  >,
 ): Promise<Result<Card>> {
   const card = snap().cardById.get(id);
   if (!card) return { ok: false, error: "ไม่พบการ์ดนี้" };
@@ -805,6 +836,14 @@ export async function updateCard(
   }
 
   const clean: Partial<Card> = {};
+
+  // ต่างจากช่องอื่นตรงที่ลบทิ้งได้ — ส่งค่าว่างมาแปลว่า "ถอดลิงก์ต้นทางออก"
+  // ไม่ใช่ "ไม่ได้แก้ช่องนี้" เพราะไม่งั้นลิงก์ที่ผูกผิดจะเอาออกไม่ได้เลย
+  if (patch.sourceUrl !== undefined) {
+    const sourceUrl = cleanSourceUrl(patch.sourceUrl);
+    if (!sourceUrl.ok) return sourceUrl;
+    clean.sourceUrl = sourceUrl.value;
+  }
   if (patch.nameTh?.trim()) clean.nameTh = patch.nameTh.trim();
   if (patch.nameEn?.trim()) clean.nameEn = patch.nameEn.trim();
   if (patch.rarity?.trim()) clean.rarity = patch.rarity.trim();

@@ -21,6 +21,8 @@ export default async function AdminPricesPage({
 
   const rows: PriceRow[] = listAdminPriceRows(active.set.code).map((row) => ({
     variantId: row.variant.id,
+    cardId: row.card.id,
+    sourceUrl: row.card.sourceUrl ?? "",
     cardNumber: row.card.number,
     cardName: row.card.nameTh,
     variantLabel: VARIANT_LABEL[row.variant.variantType],
@@ -36,6 +38,10 @@ export default async function AdminPricesPage({
         <p className="max-w-[62ch] text-[13.5px] text-ink-2">
           ทุกครั้งที่บันทึกจะเพิ่มแถวใหม่ในประวัติราคา ไม่เขียนทับของเดิม
           เพื่อให้กราฟย้อนหลังสะสมข้อมูลไปเรื่อย ๆ
+        </p>
+        <p className="max-w-[62ch] text-[13px] text-ink-3">
+          ช่อง “ต้นทาง” เก็บลิงก์หน้าที่ใช้ดูราคาของการ์ดใบนั้น วางลิงก์ไว้ครั้งเดียว
+          รอบหน้าก็กด <span className="text-accent">เปิด</span> ไปดูราคาล่าสุดได้เลย
         </p>
       </header>
 

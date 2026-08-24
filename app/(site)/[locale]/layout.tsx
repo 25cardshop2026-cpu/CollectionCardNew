@@ -4,9 +4,11 @@ import { notFound } from "next/navigation";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 import { NavLink } from "@/components/NavLink";
 import { SearchBox } from "@/components/SearchBox";
+import { logoutAction } from "@/lib/auth-actions";
 import { fontVariables } from "@/lib/fonts";
 import { getDictionary } from "@/lib/i18n";
 import { HTML_LANG, isLocale, localePath } from "@/lib/i18n/config";
+import { currentUser } from "@/lib/session";
 import "../../globals.css";
 
 // ไม่ใช้ generateStaticParams เพราะจะทำให้หน้าถูก prerender ตั้งแต่ตอน build
@@ -50,6 +52,10 @@ export default async function SiteLayout({
   const t = getDictionary(locale);
   const p = (path: string) => localePath(locale, path);
 
+  // ทั้งเว็บเปิดให้คนที่ไม่ล็อกอินใช้ได้เหมือนเดิม บัญชีมีผลแค่กับพอร์ตเท่านั้น
+  // เมนู "พอร์ตของฉัน" จึงโผล่เฉพาะตอนที่มีพอร์ตให้เข้าไปดูจริง ๆ
+  const user = await currentUser();
+
   // หน้าแรกต้องเทียบแบบตรงตัว ไม่งั้นจะติดสีค้างทุกหน้าเพราะทุก path ขึ้นต้นด้วย /th
   const nav = [
     { href: p("/"), label: t.nav.home, exact: true },
@@ -57,6 +63,7 @@ export default async function SiteLayout({
     { href: p("/g/one-piece"), label: "One Piece" },
     { href: p("/g/pokemon"), label: "Pokémon" },
     { href: p("/movers"), label: t.nav.movers },
+    ...(user ? [{ href: p("/portfolio"), label: t.nav.portfolio }] : []),
   ];
 
   return (
@@ -116,9 +123,36 @@ export default async function SiteLayout({
                 >
                   {t.nav.dashboard}
                 </Link>
-                <Link href={p("/browse")} className="btn btn-primary btn-sm">
-                  {t.nav.start}
-                </Link>
+                {/* ล็อกอินแล้วปุ่มหลักเปลี่ยนเป็นทางเข้าพอร์ต เพราะนั่นคือสิ่งที่
+                    คนที่มีบัญชีกลับมาทำ ไม่ใช่การเริ่มใช้งานใหม่อีกรอบ */}
+                {user ? (
+                  <>
+                    <form action={logoutAction} className="hidden lg:block">
+                      <input type="hidden" name="locale" value={locale} />
+                      <button
+                        type="submit"
+                        className="rounded-full border border-line-strong px-3 py-1.5 font-mono text-[10px] whitespace-nowrap text-ink-3 uppercase tracking-[0.1em] transition-colors hover:border-accent hover:text-accent"
+                      >
+                        {t.nav.logout}
+                      </button>
+                    </form>
+                    <Link href={p("/portfolio")} className="btn btn-primary btn-sm">
+                      {t.nav.portfolio}
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      href={p("/login")}
+                      className="hidden rounded-full border border-line-strong px-3 py-1.5 font-mono text-[10px] whitespace-nowrap text-ink-3 uppercase tracking-[0.1em] transition-colors hover:border-accent hover:text-accent lg:inline-block"
+                    >
+                      {t.nav.login}
+                    </Link>
+                    <Link href={p("/browse")} className="btn btn-primary btn-sm">
+                      {t.nav.start}
+                    </Link>
+                  </>
+                )}
               </div>
             </div>
             {/* แถวเมนูของจอแคบ — เมนูหลักถูกซ่อนต่ำกว่า lg ถ้าไม่มีแถวนี้
@@ -143,6 +177,24 @@ export default async function SiteLayout({
               >
                 {t.search.title}
               </Link>
+              {user ? (
+                <form action={logoutAction} className="shrink-0">
+                  <input type="hidden" name="locale" value={locale} />
+                  <button
+                    type="submit"
+                    className="rounded-full border border-line-strong px-3 py-1 text-[12.5px] whitespace-nowrap text-ink-2 transition-colors hover:border-accent hover:text-accent"
+                  >
+                    {t.nav.logout}
+                  </button>
+                </form>
+              ) : (
+                <Link
+                  href={p("/login")}
+                  className="shrink-0 rounded-full border border-line-strong px-3 py-1 text-[12.5px] whitespace-nowrap text-ink-2 transition-colors hover:border-accent hover:text-accent"
+                >
+                  {t.nav.login}
+                </Link>
+              )}
               <Link
                 href="/admin"
                 className="shrink-0 rounded-full border border-accent-line px-3 py-1 font-mono text-[10.5px] whitespace-nowrap text-accent uppercase"

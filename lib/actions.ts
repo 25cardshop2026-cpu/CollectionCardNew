@@ -62,6 +62,7 @@ export async function createCardAction(
     color: text(form, "color"),
     variantTypes,
     priceThb,
+    sourceUrl: text(form, "sourceUrl"),
   });
 
   if (!result.ok) return { error: result.error };
@@ -84,6 +85,7 @@ export async function updateCardAction(
     rarity: text(form, "rarity"),
     cardType: text(form, "cardType"),
     color: text(form, "color"),
+    sourceUrl: text(form, "sourceUrl"),
   });
 
   if (!result.ok) return { error: result.error };

@@ -94,6 +94,21 @@ export function CardForm({
         <Field label="สี" name="color" defaultValue={card?.color} placeholder="แดง" />
       </div>
 
+      <Field
+        label="ลิงก์ต้นทางราคา"
+        name="sourceUrl"
+        type="url"
+        defaultValue={card?.sourceUrl}
+        placeholder="https://..."
+        hint="หน้าร้านหรือหน้าประมูลที่ใช้ดูราคาใบนี้ — จะขึ้นเป็นปุ่มเปิดในหน้าอัปเดตราคา เว้นว่าง = ไม่มีต้นทาง"
+      />
+
+      {!isEdit && (
+        <p className="-mt-2 text-[11.5px] text-ink-3">
+          ลิงก์นี้จะติดไปให้ทุกแบบพิมพ์ที่สร้างพร้อมกัน แก้แยกทีละใบได้ทีหลัง
+        </p>
+      )}
+
       {!isEdit && (
         <>
           <CheckboxGroup

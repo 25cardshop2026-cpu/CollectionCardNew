@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CardArt } from "@/components/CardArt";
 import { Chip, PriceTag } from "@/components/Chip";
+import { AddHoldingForm } from "@/components/portfolio/AddHoldingForm";
 import { Sparkline } from "@/components/Sparkline";
 import { cardName, cardNameAlt, cardTypeLabel, colorLabel, setName } from "@/lib/display";
 import { formatAge, formatBaht, formatPercent, trendClass } from "@/lib/format";
@@ -20,6 +21,7 @@ import {
   listCardsInSet,
   loadState,
 } from "@/lib/repo";
+import { currentUser } from "@/lib/session";
 import { CHANNELS, CONDITIONS } from "@/lib/types";
 
 // อ่านข้อมูลสดทุกครั้ง เพื่อให้การ์ดที่เพิ่มหรือแก้ในแดชบอร์ดขึ้นทันที
@@ -64,12 +66,17 @@ export async function generateMetadata({
 
 export default async function CardPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string; slug: string }>;
+  searchParams: Promise<{ added?: string }>;
 }) {
   const { locale, slug } = await params;
+  const { added } = await searchParams;
   await loadState();
   if (!isLocale(locale)) notFound();
+
+  const user = await currentUser();
 
   const card = getCardBySlug(slug);
   if (!card) notFound();
@@ -201,6 +208,62 @@ export default async function CardPage({
               </span>
             </section>
           )}
+
+          {/* ---------- เก็บเข้าพอร์ตของตัวเอง ----------
+              คนที่ยังไม่ล็อกอินเห็นทุกอย่างบนหน้านี้เหมือนเดิม กล่องนี้เป็น
+              ส่วนเดียวที่ต้องมีบัญชี จึงบอกไปตรง ๆ แทนที่จะซ่อนไปเฉย ๆ */}
+          <section className="flex flex-col gap-4">
+            <p className="eyebrow">{t.portfolio.addTitle}</p>
+
+            {added && (
+              <p
+                role="status"
+                className="rounded-[4px] border border-up/50 bg-up/5 px-3 py-2 text-[13px] text-up"
+              >
+                {t.portfolio.added} —{" "}
+                <Link href={p("/portfolio")} className="underline">
+                  {t.portfolio.viewPortfolio}
+                </Link>
+              </p>
+            )}
+
+            <div className="vitrine hud flex flex-col gap-4 p-5">
+              {user ? (
+                <>
+                  <p className="text-[12.5px] text-ink-3">{t.portfolio.addSub}</p>
+                  <AddHoldingForm
+                    cardId={card.id}
+                    locale={locale}
+                    redirectTo={p(`/card/${card.slug}`)}
+                    conditions={CONDITIONS.map((condition) => ({
+                      value: condition,
+                      label: t.condition[condition],
+                    }))}
+                    labels={{
+                      condition: t.portfolio.condition,
+                      quantity: t.portfolio.quantity,
+                      cost: t.portfolio.cost,
+                      costHint: t.portfolio.costHint,
+                      note: t.portfolio.note,
+                      noteHint: t.portfolio.noteHint,
+                      submit: t.portfolio.add,
+                      working: t.auth.working,
+                    }}
+                  />
+                </>
+              ) : (
+                <div className="flex flex-wrap items-center gap-4">
+                  <p className="text-[13.5px] text-ink-2">{t.portfolio.loginToAdd}</p>
+                  <Link
+                    href={`${p("/login")}?next=${encodeURIComponent(p(`/card/${card.slug}`))}`}
+                    className="btn btn-ghost btn-sm"
+                  >
+                    {t.nav.login}
+                  </Link>
+                </div>
+              )}
+            </div>
+          </section>
 
           {/* ---------- ราคาตามช่องทาง ---------- */}
           {headlineVariant && (

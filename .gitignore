@@ -20,3 +20,7 @@ data/overrides.json
 
 # HTML ดิบที่สคริปต์ import ดึงมาแคชไว้ ไม่ใช่ซอร์ส
 .cache/
+
+# บัญชีผู้ใช้และพอร์ตการ์ดตอนพัฒนาในเครื่อง — runtime state เหมือนกัน
+data/users.json
+data/portfolios/

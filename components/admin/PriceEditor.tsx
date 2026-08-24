@@ -4,6 +4,9 @@ import { useRef, useState } from "react";
 
 export interface PriceRow {
   variantId: string;
+  cardId: string;
+  /** ลิงก์หน้าที่ใช้ดูราคาของใบนี้ — ว่าง = ยังไม่ได้ผูกต้นทาง */
+  sourceUrl: string;
   cardNumber: string;
   cardName: string;
   variantLabel: string;
@@ -48,6 +51,45 @@ export function PriceEditor({ rows }: { rows: PriceRow[] }) {
   const [saved, setSaved] = useState<Record<string, number>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const inputs = useRef<(HTMLInputElement | null)[]>([]);
+
+  /*
+    ลิงก์ต้นทางแยกสถานะจากราคา เพราะบันทึกคนละที่ ไม่ได้ผูกกับเกรดหรือช่องทาง
+
+    เก็บสองชุด: ค่าที่พิมพ์อยู่ในช่อง กับค่าที่เซิร์ฟเวอร์รับไปแล้ว
+    ไว้เทียบว่าเปลี่ยนจริงไหมก่อนยิงบันทึก — เทียบกับ prop ตรง ๆ ไม่ได้
+    เพราะหน้านี้ไม่ได้รีโหลดหลังบันทึก prop จึงค้างอยู่ที่ค่าตอนเปิดหน้า
+  */
+  const initialSources = () => Object.fromEntries(rows.map((r) => [r.cardId, r.sourceUrl]));
+  const [sources, setSources] = useState<Record<string, string>>(initialSources);
+  const [savedSources, setSavedSources] = useState<Record<string, string>>(initialSources);
+  const [sourceErrors, setSourceErrors] = useState<Record<string, string>>({});
+
+  async function saveSource(row: PriceRow) {
+    const value = (sources[row.cardId] ?? "").trim();
+    if (value === (savedSources[row.cardId] ?? "")) return;
+
+    setSourceErrors((e) => ({ ...e, [row.cardId]: "" }));
+    try {
+      const res = await fetch("/api/card-source", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cardId: row.cardId, sourceUrl: value }),
+      });
+      const data = (await res.json()) as { sourceUrl?: string; error?: string };
+      if (!res.ok) throw new Error(data.error ?? "บันทึกลิงก์ไม่สำเร็จ");
+
+      // เซิร์ฟเวอร์คืนลิงก์ที่ผ่านการตรวจแล้ว ใช้ค่านั้นทั้งในช่องและปุ่ม "เปิด"
+      // ปุ่มจะได้ชี้ไปที่เดียวกับที่บันทึกไว้จริง
+      const clean = data.sourceUrl ?? "";
+      setSources((s) => ({ ...s, [row.cardId]: clean }));
+      setSavedSources((s) => ({ ...s, [row.cardId]: clean }));
+    } catch (err) {
+      setSourceErrors((e) => ({
+        ...e,
+        [row.cardId]: err instanceof Error ? err.message : "บันทึกลิงก์ไม่สำเร็จ",
+      }));
+    }
+  }
 
   const shownPrice = (row: PriceRow) => (grade === "PSA10" ? row.psaPrice : row.price);
 
@@ -184,6 +226,9 @@ export function PriceEditor({ rows }: { rows: PriceRow[] }) {
               <th className="px-3 py-2.5 text-left font-mono text-[10px] font-normal uppercase tracking-[0.07em] text-ink-3">
                 เวอร์ชัน
               </th>
+              <th className="px-3 py-2.5 text-left font-mono text-[10px] font-normal uppercase tracking-[0.07em] text-ink-3">
+                ต้นทาง
+              </th>
               <th className="px-3 py-2.5 text-right font-mono text-[10px] font-normal uppercase tracking-[0.07em] text-ink-3">
                 ราคา {GRADE_LABEL[grade]} · {SOURCE_LABEL[source]} (บาท)
               </th>
@@ -208,6 +253,44 @@ export function PriceEditor({ rows }: { rows: PriceRow[] }) {
                   <td className="px-3 py-2 whitespace-nowrap">{row.cardName}</td>
                   <td className="px-3 py-2 text-ink-2 whitespace-nowrap">
                     {row.variantLabel}
+                  </td>
+                  <td className="px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="url"
+                        value={sources[row.cardId] ?? ""}
+                        onChange={(e) =>
+                          setSources((s) => ({ ...s, [row.cardId]: e.target.value }))
+                        }
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            void saveSource(row);
+                          }
+                        }}
+                        onBlur={() => void saveSource(row)}
+                        placeholder="https://…"
+                        aria-label={`ลิงก์ต้นทางราคาของ ${row.cardName} ${row.variantLabel}`}
+                        className="w-40 rounded-[3px] border border-line-strong bg-surface-2 px-2 py-1 text-[12px] focus:border-accent focus:bg-accent-soft"
+                      />
+                      {savedSources[row.cardId] ? (
+                        <a
+                          href={savedSources[row.cardId]}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="shrink-0 font-mono text-[10.5px] uppercase tracking-[0.06em] text-accent hover:underline"
+                        >
+                          เปิด ↗
+                        </a>
+                      ) : (
+                        <span className="shrink-0 font-mono text-[10.5px] text-ink-3">—</span>
+                      )}
+                    </div>
+                    {sourceErrors[row.cardId] && (
+                      <span className="mt-1 block font-mono text-[10.5px] text-down">
+                        {sourceErrors[row.cardId]}
+                      </span>
+                    )}
                   </td>
                   <td className="px-3 py-2 text-right">
                     <input
