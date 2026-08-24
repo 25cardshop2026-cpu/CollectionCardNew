@@ -27,12 +27,46 @@ export interface PublicUser {
   id: string;
   email: string;
   displayName: string;
+  /** เข้าแดชบอร์ดและแก้ข้อมูลจริงได้ไหม */
+  isAdmin: boolean;
 }
 
 export type Result<T> = { ok: true; value: T } | { ok: false; error: string };
 
+/**
+ * ใครเป็นแอดมิน — ตัดสินจาก ADMIN_EMAILS ในตัวแปรสภาพแวดล้อม ไม่ใช่ธงในฐานข้อมูล
+ *
+ * เหตุผล: สิทธิ์แอดมินเป็นของที่ยกให้ตัวเองไม่ได้ ถ้าเก็บเป็นธงในไฟล์ผู้ใช้
+ * ใครที่เขียนที่เก็บข้อมูลได้ก็ตั้งตัวเองเป็นแอดมินได้ และยังต้องมีทางแต่งตั้ง
+ * คนแรกซึ่งมักกลายเป็นช่องโหว่ ("คนที่สมัครคนแรกได้เป็นแอดมิน")
+ * เก็บไว้ที่ตัวแปรสภาพแวดล้อมแปลว่าต้องเข้าถึงบัญชี Vercel ได้เท่านั้นถึงจะเปลี่ยน
+ *
+ * ไม่ตั้งค่าไว้ = ไม่มีใครเป็นแอดมิน แดชบอร์ดถูกล็อกทั้งหมด
+ * ปลอดภัยกว่าการเปิดทิ้งไว้เมื่อลืมตั้งค่า
+ */
+function adminEmails(): string[] {
+  return (process.env.ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+export function isAdminEmail(email: string): boolean {
+  return adminEmails().includes(email.trim().toLowerCase());
+}
+
+/** ตั้ง ADMIN_EMAILS ไว้หรือยัง — ใช้บอกสาเหตุที่ถูกกันตอนยังไม่ได้ตั้ง */
+export function adminConfigured(): boolean {
+  return adminEmails().length > 0;
+}
+
 export function toPublic(user: User): PublicUser {
-  return { id: user.id, email: user.email, displayName: user.displayName };
+  return {
+    id: user.id,
+    email: user.email,
+    displayName: user.displayName,
+    isAdmin: isAdminEmail(user.email),
+  };
 }
 
 function normalizeEmail(email: string): string {
@@ -96,6 +130,34 @@ export async function registerUser(input: {
     return { ok: false, error: "บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง" };
   }
   return { ok: true, value: user };
+}
+
+/**
+ * ตั้งรหัสผ่านใหม่ให้บัญชีหนึ่ง
+ *
+ * ไม่ตรวจรหัสเดิม เพราะทางเข้าเดียวที่เรียกตัวนี้คือลิงก์ตั้งรหัสใหม่ที่เซ็นไว้
+ * ซึ่งพิสูจน์ตัวตนมาแล้วในตัวมันเอง (ดู lib/password-reset.ts)
+ */
+export async function setPassword(userId: string, password: string): Promise<Result<User>> {
+  if (password.length < MIN_PASSWORD_LENGTH) {
+    return { ok: false, error: `รหัสผ่านต้องยาวอย่างน้อย ${MIN_PASSWORD_LENGTH} ตัวอักษร` };
+  }
+  if (!isWritable()) {
+    return { ok: false, error: "บันทึกไม่ได้ตอนนี้ เพราะที่เก็บข้อมูลเขียนไม่ได้" };
+  }
+
+  const users = await loadUsers();
+  const index = users.findIndex((user) => user.id === userId);
+  if (index < 0) return { ok: false, error: "ไม่พบบัญชีนี้" };
+
+  const updated: User = { ...users[index], passwordHash: await hashPassword(password) };
+  const next = [...users];
+  next[index] = updated;
+
+  if (!(await writeJson(USERS_KEY, next))) {
+    return { ok: false, error: "บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง" };
+  }
+  return { ok: true, value: updated };
 }
 
 export async function authenticate(email: string, password: string): Promise<Result<User>> {

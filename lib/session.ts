@@ -18,6 +18,18 @@ export const currentUser = cache(async (): Promise<PublicUser | null> => {
   return user ? toPublic(user) : null;
 });
 
+/**
+ * ผู้ใช้ที่เป็นแอดมินเท่านั้น ไม่ใช่ก็คืน null
+ *
+ * ทุกทางที่แก้ข้อมูลจริงได้ต้องเรียกตัวนี้ก่อน ไม่ใช่แค่หน้าแดชบอร์ด —
+ * server action กับ API route ถูกเรียกตรงจากภายนอกได้โดยไม่ผ่านหน้าเว็บ
+ * การซ่อนปุ่มในหน้าจอจึงไม่ใช่การกั้น
+ */
+export async function requireAdmin(): Promise<PublicUser | null> {
+  const user = await currentUser();
+  return user?.isAdmin ? user : null;
+}
+
 export async function startSession(userId: string): Promise<void> {
   const session = await createSession(userId);
   (await cookies()).set(SESSION_COOKIE, session.value, {

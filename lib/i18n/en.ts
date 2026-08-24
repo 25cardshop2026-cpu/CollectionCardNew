@@ -71,16 +71,21 @@ export const en: Dictionary = {
       },
     ],
 
-    upcomingChip: "In development",
-    upcomingTitle: "Your own collection comes next",
-    upcomingSub:
-      "Right now this is a price database and nothing more. The next phase lets you record the cards you actually own and track their value like an investment portfolio.",
-    upcoming: [
-      "Log your own collection and see how close each set is to complete",
-      "Portfolio value over time, with gains and losses against what you paid",
-      "Alerts when a card on your wishlist drops to your target price",
-      "Add cards by photographing them instead of typing card numbers",
+    portfolioChip: "Live now",
+    portfolioTitle: "Keep the cards you own in your own portfolio",
+    portfolioSub:
+      "Create an account and log the cards you actually own. Your total value is calculated from the latest prices on the site, alongside your profit or loss against what you paid — browsing and search still need no account.",
+    portfolioPoints: [
+      "Log the cards you own, by condition and quantity",
+      "Total portfolio value from each card's latest price",
+      "Profit and loss against the cost you entered",
+      "Your portfolio is private — nobody else can see it",
     ],
+    portfolioCta: "Create my portfolio",
+    portfolioCtaSignedIn: "View my portfolio",
+    nextUpLabel: "Coming next",
+    nextUp:
+      "Portfolio value over time · alerts when a wishlist card hits your target price · adding cards by photo",
 
     finalTitle: "Start checking prices now",
     finalSub: (cards: string, sets: number, price: string | null) =>
@@ -204,6 +209,27 @@ export const en: Dictionary = {
     noAccount: "No account yet?",
     haveAccount: "Already have an account?",
     signedInAs: "Signed in as",
+
+    forgotLink: "Forgot your password?",
+    forgotTitle: "Forgot password",
+    forgotHeading: "Reset your password",
+    forgotSub:
+      "Enter the email you signed up with and we'll send a link to set a new password. The link is good for one hour.",
+    forgotSubmit: "Send reset link",
+    forgotSent: "If that email has an account, a reset link is on its way.",
+    forgotSentNoMail:
+      "Request received, but this site has no email service connected yet. Contact the site owner to get your reset link.",
+    backToLogin: "← Back to sign in",
+
+    resetTitle: "Set a new password",
+    resetHeading: "Set a new password",
+    resetSub: "You'll be signed in as soon as it's saved, and the old link stops working.",
+    resetSubmit: "Save new password",
+    newPassword: "New password",
+    resetInvalidTitle: "This link no longer works",
+    resetInvalidSub:
+      "Reset links last one hour and can only be used once. Request a fresh one below.",
+    resetAskAgain: "Request a new link",
   },
 
   portfolio: {

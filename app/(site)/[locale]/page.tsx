@@ -6,6 +6,7 @@ import { formatBaht, formatNumber } from "@/lib/format";
 import { getDictionary } from "@/lib/i18n";
 import { isLocale, localePath } from "@/lib/i18n/config";
 import { getAdminStats, listFeaturedCards, listMovers, loadState } from "@/lib/repo";
+import { currentUser } from "@/lib/session";
 import { HISTORY_DAYS } from "@/lib/seed";
 
 export const dynamic = "force-dynamic";
@@ -22,6 +23,9 @@ export default async function LandingPage({
   const t = getDictionary(locale);
   const p = (path: string) => localePath(locale, path);
   const stats = getAdminStats();
+
+  // ใช้ตัดสินว่าบล็อกพอร์ตจะชวนสมัคร หรือพาเข้าพอร์ตที่มีอยู่แล้ว
+  const user = await currentUser();
 
   // การ์ดที่แอดมินปักหมุดไว้ในหน้าตั้งค่าหน้าแรก ถ้าไม่ได้ปักไว้ repo จะเลือกให้เอง
   const showcase = listFeaturedCards();
@@ -166,33 +170,50 @@ export default async function LandingPage({
         </div>
       </section>
 
-      {/* ---------------- กำลังจะมา ---------------- */}
+      {/* ---------------- พอร์ตการ์ดของผู้ใช้ ---------------- */}
       <section className="border-t border-line">
         <div className="mx-auto grid max-w-6xl gap-12 px-5 py-20 sm:px-8 sm:py-24 lg:grid-cols-[1fr_1fr] lg:items-start">
           <div className="flex flex-col items-start gap-4">
-            <Chip tone="accent">{t.landing.upcomingChip}</Chip>
+            <Chip tone="accent">{t.landing.portfolioChip}</Chip>
             <h2 className="max-w-[20ch] text-balance font-display text-[clamp(1.75rem,4.5vw,2.5rem)] font-semibold leading-[1.14] tracking-[-0.02em]">
-              {t.landing.upcomingTitle}
+              {t.landing.portfolioTitle}
             </h2>
             <p className="max-w-[48ch] text-[15px] leading-relaxed text-ink-2">
-              {t.landing.upcomingSub}
+              {t.landing.portfolioSub}
             </p>
+
+            {/* ล็อกอินอยู่แล้วก็ไม่ต้องชวนสมัครซ้ำ พาเข้าพอร์ตไปเลย */}
+            <Link
+              href={user ? p("/portfolio") : p("/register")}
+              className="btn btn-primary btn-sm mt-2"
+            >
+              {user ? t.landing.portfolioCtaSignedIn : t.landing.portfolioCta}
+            </Link>
           </div>
 
-          <ul className="flex flex-col gap-4">
-            {t.landing.upcoming.map((item) => (
-              <li
-                key={item}
-                className="flex items-start gap-3.5 border-b border-line pb-4 last:border-0"
-              >
-                <span
-                  className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-accent"
-                  aria-hidden="true"
-                />
-                <span className="text-[14.5px] leading-relaxed text-ink-2">{item}</span>
-              </li>
-            ))}
-          </ul>
+          <div className="flex flex-col gap-4">
+            <ul className="flex flex-col gap-4">
+              {t.landing.portfolioPoints.map((item) => (
+                <li
+                  key={item}
+                  className="flex items-start gap-3.5 border-b border-line pb-4 last:border-0"
+                >
+                  <span
+                    className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-accent"
+                    aria-hidden="true"
+                  />
+                  <span className="text-[14.5px] leading-relaxed text-ink-2">{item}</span>
+                </li>
+              ))}
+            </ul>
+
+            <p className="text-[12.5px] leading-relaxed text-ink-3">
+              <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-accent">
+                {t.landing.nextUpLabel}
+              </span>{" "}
+              {t.landing.nextUp}
+            </p>
+          </div>
         </div>
       </section>
 

@@ -44,7 +44,7 @@ function fromHex(hex: string): Uint8Array {
 }
 
 /** เทียบแบบใช้เวลาคงที่ ไม่ให้เดาทีละตัวอักษรจากเวลาที่ตอบกลับ */
-function equals(a: string, b: string): boolean {
+export function equals(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
 
   let diff = 0;
@@ -90,7 +90,8 @@ export async function verifyPassword(password: string, stored: string): Promise<
 
 // ---------- เซสชัน ----------
 
-async function sign(payload: string): Promise<string> {
+/** ลายเซ็น HMAC ของข้อความหนึ่งก้อน ใช้ทั้งคุกกี้เซสชันและลิงก์ตั้งรหัสผ่านใหม่ */
+export async function hmac(payload: string): Promise<string> {
   const key = await crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(secret()),
@@ -114,7 +115,7 @@ export interface SessionCookie {
 export async function createSession(userId: string): Promise<SessionCookie> {
   const maxAge = SESSION_DAYS * 24 * 60 * 60;
   const payload = `${userId}.${Date.now() + maxAge * 1000}`;
-  return { value: `${payload}.${await sign(payload)}`, maxAge };
+  return { value: `${payload}.${await hmac(payload)}`, maxAge };
 }
 
 /** คืน id ของผู้ใช้ถ้าคุกกี้ยังใช้ได้ ไม่งั้นคืน null */
@@ -129,7 +130,7 @@ export async function readSession(cookie: string | undefined): Promise<string | 
   if (!userId || !expiresAt || !signature) return null;
   if (!Number.isFinite(Number(expiresAt)) || Number(expiresAt) < Date.now()) return null;
 
-  return equals(signature, await sign(`${userId}.${expiresAt}`)) ? userId : null;
+  return equals(signature, await hmac(`${userId}.${expiresAt}`)) ? userId : null;
 }
 
 /** ตัวเลือกคุกกี้ที่ใช้ร่วมกันทั้งตอนล็อกอินและตอนออกจากระบบ */

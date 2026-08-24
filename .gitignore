@@ -24,3 +24,4 @@ data/overrides.json
 # บัญชีผู้ใช้และพอร์ตการ์ดตอนพัฒนาในเครื่อง — runtime state เหมือนกัน
 data/users.json
 data/portfolios/
+data/password-resets.json

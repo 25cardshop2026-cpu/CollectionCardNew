@@ -52,6 +52,7 @@ export default async function SearchPage({
         <div className="accent-rule h-px w-24" aria-hidden="true" />
         <SearchBox
           action={p("/search")}
+          locale={locale}
           defaultValue={query}
           placeholder={t.search.placeholder}
           submitLabel={t.search.submit}

@@ -65,6 +65,10 @@ export default async function LoginPage({
         />
       </div>
 
+      <Link href={p("/forgot")} className="-mt-3 text-[13px] text-ink-3 hover:text-accent">
+        {t.auth.forgotLink}
+      </Link>
+
       <p className="text-[13.5px] text-ink-3">
         {t.auth.noAccount}{" "}
         <Link

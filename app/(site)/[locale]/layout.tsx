@@ -57,11 +57,11 @@ export default async function SiteLayout({
   const user = await currentUser();
 
   // หน้าแรกต้องเทียบแบบตรงตัว ไม่งั้นจะติดสีค้างทุกหน้าเพราะทุก path ขึ้นต้นด้วย /th
+  // ไม่มีลิงก์เกมแยกแล้ว เพราะ "เลือกเกม" พาไปที่เดียวกันอยู่แล้ว
+  // ที่ว่างที่ได้คืนมาเทให้ช่องค้นหาซึ่งเป็นสิ่งที่คนใช้บ่อยกว่ามาก
   const nav = [
     { href: p("/"), label: t.nav.home, exact: true },
     { href: p("/browse"), label: t.nav.browse },
-    { href: p("/g/one-piece"), label: "One Piece" },
-    { href: p("/g/pokemon"), label: "Pokémon" },
     { href: p("/movers"), label: t.nav.movers },
     ...(user ? [{ href: p("/portfolio"), label: t.nav.portfolio }] : []),
   ];
@@ -105,11 +105,11 @@ export default async function SiteLayout({
               </nav>
 
               {/* ช่องค้นหากินที่ว่างที่เหลือทั้งหมด เพราะการค้นหาคือสิ่งที่คนเข้ามา
-                  ทำบ่อยที่สุด — ต่ำกว่า xl พื้นที่ไม่พอให้ทั้งเมนูและช่องค้นหา
-                  จึงถอยไปเป็นปุ่มแว่นขยายกับลิงก์ในแถวเมนูข้างล่างแทน */}
-              <div className="hidden w-full min-w-[200px] flex-1 xl:block">
+                  ทำบ่อยที่สุด — จอแคบกว่า lg ใช้ลิงก์ในแถวเมนูข้างล่างแทน */}
+              <div className="hidden w-full min-w-[180px] flex-1 lg:block">
                 <SearchBox
                   action={p("/search")}
+                  locale={locale}
                   placeholder={t.search.placeholder}
                   submitLabel={t.search.submit}
                   compact
@@ -117,28 +117,6 @@ export default async function SiteLayout({
               </div>
 
               <div className="ml-auto flex shrink-0 items-center gap-2.5">
-                {/* ช่วงจอกลาง (lg ถึง xl) เมนูหลักโผล่แล้วแต่แถวเมนูข้างล่างหายไป
-                    ถ้าไม่มีปุ่มนี้จะไม่มีทางเข้าหน้าค้นหาเลยในช่วงความกว้างนั้น */}
-                <Link
-                  href={p("/search")}
-                  aria-label={t.search.title}
-                  className="hidden h-8 w-8 items-center justify-center rounded-full border border-line-strong text-ink-3 transition-colors hover:border-accent hover:text-accent lg:inline-flex xl:hidden"
-                >
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                    aria-hidden="true"
-                  >
-                    <circle cx="11" cy="11" r="7" />
-                    <path d="m20 20-3.5-3.5" />
-                  </svg>
-                </Link>
-
                 {/* ล็อกอินแล้วปุ่มหลักเปลี่ยนเป็นทางเข้าพอร์ต เพราะนั่นคือสิ่งที่
                     คนที่มีบัญชีกลับมาทำ ไม่ใช่การเริ่มใช้งานใหม่อีกรอบ */}
                 {user ? (

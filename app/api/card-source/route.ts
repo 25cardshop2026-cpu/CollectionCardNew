@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/session";
 import { revalidatePath } from "next/cache";
 import { canPersist, loadState, updateCard } from "@/lib/repo";
 
@@ -11,6 +12,10 @@ export const dynamic = "force-dynamic";
  * เหมือนช่องราคา — ให้คนที่นั่งไล่กรอกราคาวางลิงก์ต้นทางได้ตรงนั้นเลย
  */
 export async function POST(request: Request) {
+  if (!(await requireAdmin())) {
+    return NextResponse.json({ error: "ต้องเข้าสู่ระบบด้วยบัญชีแอดมินก่อน" }, { status: 403 });
+  }
+
   let body: unknown;
 
   try {
