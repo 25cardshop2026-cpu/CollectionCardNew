@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { canPersist, loadState, setPrice } from "@/lib/repo";
+import { canPersist, getAdminPrices, loadState, setPrice } from "@/lib/repo";
 import { CHANNELS, CONDITIONS, type Condition, type PriceSource } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -62,5 +62,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: result.error }, { status: notFound ? 404 : 400 });
   }
 
-  return NextResponse.json(result.value);
+  /*
+    คืนราคาทั้งสี่ช่องของการ์ดใบนี้กลับไปด้วย ไม่ใช่แค่ช่องที่เพิ่งบันทึก
+
+    เพราะ NM กับ PSA 10 เป็นราคาชุดเดียวกันคนละมุมมอง กรอกช่องหนึ่งอีกช่อง
+    ต้องขยับตามทันที ตารางในแดชบอร์ดโชว์ทั้งสองช่องพร้อมกันโดยไม่รีโหลดหน้า
+    ถ้าไม่ส่งค่าใหม่กลับไป ตัวเลขบนจอจะขัดกันเองจนคนกรอกไม่รู้ว่าอันไหนจริง
+  */
+  return NextResponse.json({ ...result.value, prices: getAdminPrices(variantId) });
 }

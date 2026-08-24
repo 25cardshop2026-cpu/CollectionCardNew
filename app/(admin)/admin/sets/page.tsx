@@ -158,13 +158,7 @@ export default async function AdminSetsPage({
                                 href={`/admin/cards?set=${set.code}`}
                                 className="text-[12.5px] text-ink-3 hover:text-accent"
                               >
-                                การ์ด
-                              </Link>
-                              <Link
-                                href={`/admin/prices?set=${set.code}`}
-                                className="text-[12.5px] text-ink-3 hover:text-accent"
-                              >
-                                ราคา
+                                การ์ด · ราคา
                               </Link>
                               <Link
                                 href={`/admin/sets?confirm=${set.code}`}

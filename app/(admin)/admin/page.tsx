@@ -46,7 +46,7 @@ export default async function AdminOverviewPage() {
           <span className="font-mono text-2xl font-bold tabular-nums">
             {stats.stale.toLocaleString("th-TH")}
           </span>
-          <Link href="/admin/prices" className="text-[13px] text-accent hover:underline">
+          <Link href="/admin/cards" className="text-[13px] text-accent hover:underline">
             ไปอัปเดตราคา →
           </Link>
         </div>

@@ -24,7 +24,9 @@ export default function AdminLayout({
   return (
     <html lang="th-TH" className={fontVariables}>
       <body className="font-sans">
-        <div className="mx-auto flex max-w-6xl flex-col gap-6 px-5 py-8 sm:px-8">
+        {/* กว้างกว่าหน้าเว็บสาธารณะ เพราะตารางจัดการการ์ดมีช่องกรอกราคาสี่ช่อง
+            ต่อแถว ถ้าบีบเท่าหน้าเว็บจะต้องเลื่อนตารางแนวนอนตลอดเวลาที่กรอก */}
+        <div className="mx-auto flex max-w-[1400px] flex-col gap-6 px-5 py-8 sm:px-8">
           <div className="flex flex-wrap items-center gap-4 border-b border-line pb-4">
             <h1 className="font-mono text-[12px] uppercase tracking-[0.14em] text-accent">
               แดชบอร์ด
@@ -35,8 +37,9 @@ export default function AdminLayout({
                 { href: "/admin", label: "ภาพรวม", exact: true },
                 { href: "/admin/home", label: "ตั้งค่าหน้าแรก" },
                 { href: "/admin/sets", label: "จัดการชุด" },
-                { href: "/admin/cards", label: "จัดการการ์ด" },
-                { href: "/admin/prices", label: "อัปเดตราคา" },
+                // จัดการการ์ดกับอัปเดตราคาเป็นหน้าเดียวกันแล้ว — ลิงก์ต้นทางกับ
+                // ช่องราคาทั้งสี่อยู่ในแถวเดียวกับการ์ด ไม่ต้องสลับหน้าระหว่างกรอก
+                { href: "/admin/cards", label: "จัดการการ์ด · ราคา" },
               ].map((item) => (
                 <NavLink
                   key={item.href}

@@ -25,8 +25,8 @@ export default async function EditCardPage({
         <h2 className="text-xl font-bold tracking-tight">แก้ไขการ์ด</h2>
         <p className="text-[13.5px] text-ink-2">
           ราคาแก้ที่{" "}
-          <Link href={`/admin/prices?set=${card.setCode}`} className="text-accent hover:underline">
-            หน้าอัปเดตราคา
+          <Link href={`/admin/cards?set=${card.setCode}`} className="text-accent hover:underline">
+            ตารางจัดการการ์ด
           </Link>{" "}
           เพราะทุกครั้งที่บันทึกราคาจะเก็บเป็นประวัติแยกแถว
         </p>

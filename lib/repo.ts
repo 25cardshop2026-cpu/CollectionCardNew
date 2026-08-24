@@ -534,12 +534,33 @@ export function listMovers(limit = 12, gameSlug?: string): Mover[] {
 
 // ---------- อ่าน: แดชบอร์ด ----------
 
+/**
+ * ราคาทั้งสี่ช่องที่แดชบอร์ดกรอกได้ของการ์ดหนึ่งใบ
+ *
+ * nm กับ psa10 มาจากราคาตลาดหลักชุดเดียวกัน — psa10 คือ nm ที่บวกเบี้ยเกรดแล้ว
+ * แก้ช่องไหนอีกช่องจึงขยับตาม ส่วน ebay/snkrdunk เป็นคนละชุดข้อมูล ไม่เกี่ยวกัน
+ */
+export interface AdminPriceSet {
+  nm: number | null;
+  psa10: number | null;
+  ebay: number | null;
+  snkrdunk: number | null;
+}
+
+export function getAdminPrices(variantId: string): AdminPriceSet {
+  return {
+    nm: currentPrice(variantId, "NM")?.priceThb ?? null,
+    psa10: currentPrice(variantId, "PSA10")?.priceThb ?? null,
+    ebay: getChannelPrice(variantId, "NM", "ebay")?.priceThb ?? null,
+    snkrdunk: getChannelPrice(variantId, "NM", "snkrdunk")?.priceThb ?? null,
+  };
+}
+
 export interface AdminPriceRow {
   card: Card;
   variant: Variant;
-  current: PriceCurrent | null;
-  /** ราคาใบเกรด PSA 10 ของ variant เดียวกัน คำนวณจากราคาดิบ */
-  psa: PriceCurrent | null;
+  prices: AdminPriceSet;
+  /** ราคาตลาดหลักถูกบันทึกไว้เมื่อกี่วันก่อน — null = ยังไม่เคยมีราคา */
   staleDays: number | null;
 }
 
@@ -552,11 +573,10 @@ export function listAdminPriceRows(setCode: string): AdminPriceRow[] {
     .flatMap((card) =>
       getVariants(card.id).map((variant) => {
         const current = currentPrice(variant.id, "NM");
-        const psa = currentPrice(variant.id, "PSA10");
         const staleDays = current
           ? Math.floor((now - new Date(current.updatedAt).getTime()) / 86400000)
           : null;
-        return { card, variant, current, psa, staleDays };
+        return { card, variant, prices: getAdminPrices(variant.id), staleDays };
       }),
     );
 }
