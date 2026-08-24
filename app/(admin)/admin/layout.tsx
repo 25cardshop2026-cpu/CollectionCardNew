@@ -115,6 +115,13 @@ export default async function AdminLayout({
             </div>
           </div>
 
+          {STORAGE_KIND === "supabase" && (
+            <div className="rounded-lg border border-up/40 bg-up/5 px-4 py-3 text-[13px] text-ink-2">
+              <b className="text-ink">บันทึกได้ — เก็บใน Supabase</b> ราคา การ์ด ผู้ใช้
+              และพอร์ตอยู่ในตารางจริงของ Postgres ส่วนรูปการ์ดอยู่ใน Supabase Storage
+            </div>
+          )}
+
           {STORAGE_KIND === "blob" && (
             <div className="rounded-lg border border-up/40 bg-up/5 px-4 py-3 text-[13px] text-ink-2">
               <b className="text-ink">บันทึกได้ — เก็บใน Vercel Blob</b> ของที่เพิ่มหรือแก้ที่นี่

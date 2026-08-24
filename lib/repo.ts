@@ -11,15 +11,8 @@ import {
   slugify,
 } from "./seed";
 import { cache } from "react";
-import {
-  EMPTY_OVERRIDES,
-  isStorageWritable,
-  loadOverrides,
-  saveOverrides,
-  usingBlob,
-  type LoadedOverrides,
-  type Overrides,
-} from "./overrides";
+import { catalogStore, type WriteResult } from "./catalog-store";
+import { EMPTY_OVERRIDES, type LoadedOverrides, type Overrides } from "./overrides";
 import { VARIANT_LABEL } from "./types";
 import type {
   Card,
@@ -48,18 +41,14 @@ import type {
 
 /**
  * ที่เก็บข้อมูลที่ใช้อยู่จริงตอนนี้
- * blob = Vercel Blob (ใช้ได้ทั้งบนเว็บจริงและในเครื่อง)
+ * supabase = ตารางจริงใน Postgres · blob = Vercel Blob
  * file = ไฟล์ในเครื่อง · none = เขียนอะไรไม่ได้เลย
  */
-export const STORAGE_KIND: "blob" | "file" | "none" = usingBlob()
-  ? "blob"
-  : isStorageWritable()
-    ? "file"
-    : "none";
+export const STORAGE_KIND = catalogStore.kind;
 
 /** บันทึกได้ไหม */
 export function canPersist(): boolean {
-  return STORAGE_KIND !== "none";
+  return catalogStore.writable();
 }
 
 // ---------- สร้างสถานะปัจจุบันจากข้อมูลตั้งต้น + ส่วนต่าง ----------
@@ -174,7 +163,7 @@ function build(overrides: Overrides): Snapshot {
  * cache() ของ React ทำให้เรียกซ้ำกี่ครั้งใน request เดียวก็ยิงจริงครั้งเดียว
  */
 export const loadState = cache(async (): Promise<void> => {
-  loaded = await loadOverrides();
+  loaded = await catalogStore.load();
 });
 
 /** สร้างดัชนีใหม่เฉพาะเมื่อข้อมูลที่โหลดมาเปลี่ยนจริง */
@@ -186,31 +175,18 @@ function snap(): Snapshot {
   return cachedSnapshot;
 }
 
-async function commit(mutate: (draft: Overrides) => void): Promise<boolean> {
-  // อ่านของล่าสุดก่อนเขียนเสมอ ไม่ใช้สำเนาที่ค้างอยู่ในหน่วยความจำ
-  // เพราะ instance อื่นอาจเพิ่งบันทึกอะไรไปแล้ว
-  const { overrides: current } = await loadOverrides();
-  const draft: Overrides = {
-    ...current,
-    sets: [...current.sets],
-    cards: [...current.cards],
-    variants: [...current.variants],
-    cardEdits: { ...current.cardEdits },
-    deletedSetCodes: [...current.deletedSetCodes],
-    featuredCardIds: [...current.featuredCardIds],
-    deletedCardIds: [...current.deletedCardIds],
-    pricePoints: [...current.pricePoints],
-    version: current.version + 1,
-  };
+/**
+ * รับผลของการเขียนหนึ่งครั้งมาปรับสำเนาในหน่วยความจำให้ตรงทันที
+ *
+ * ที่เก็บข้อมูลคืนสถานะล่าสุดกลับมาให้ด้วย ไม่ใช่แค่สำเร็จ/ไม่สำเร็จ เพราะ
+ * โค้ดที่เรียกต้องอ่านของที่เพิ่งบันทึกกลับมาแสดงต่อในคำขอเดียวกัน
+ */
+function applied(result: WriteResult): boolean {
+  if (!result) return false;
 
-  mutate(draft);
-
-  const saved = await saveOverrides(draft);
-  if (!saved) return false;
-
-  loaded = saved;
-  cachedSnapshot = build(saved.overrides);
-  cachedKey = saved.key;
+  loaded = result;
+  cachedSnapshot = build(result.overrides);
+  cachedKey = result.key;
   return true;
 }
 
@@ -383,9 +359,7 @@ export async function setFeaturedCards(ids: string[]): Promise<Result<string[]>>
     if (!clean.includes(id)) clean.push(id);
   }
 
-  const ok = await commit((draft) => {
-    draft.featuredCardIds = clean.slice(0, FEATURED_SLOTS);
-  });
+  const ok = applied(await catalogStore.setFeatured(clean.slice(0, FEATURED_SLOTS)));
 
   if (!ok) return { ok: false, error: NOT_WRITABLE };
   return { ok: true, value: clean };
@@ -662,15 +636,17 @@ export async function setPrice(
     };
   }
 
-  const ok = await commit((draft) => {
-    draft.pricePoints.push({
-      variantId,
-      condition: "NM",
-      priceThb: nmEquivalent,
-      recordedAt: new Date().toISOString(),
-      source,
-    });
-  });
+  const ok = applied(
+    await catalogStore.addPricePoints([
+      {
+        variantId,
+        condition: "NM",
+        priceThb: nmEquivalent,
+        recordedAt: new Date().toISOString(),
+        source,
+      },
+    ]),
+  );
 
   if (!ok) return { ok: false, error: NOT_WRITABLE };
 
@@ -712,7 +688,7 @@ export async function createSet(input: NewSetInput): Promise<Result<CardSet>> {
     totalCards: Math.max(0, Math.round(input.totalCards)),
   };
 
-  if (!await commit((draft) => draft.sets.push(set))) {
+  if (!applied(await catalogStore.addSet(set))) {
     return { ok: false, error: NOT_WRITABLE };
   }
   return { ok: true, value: set };
@@ -728,12 +704,7 @@ export async function deleteSet(code: string): Promise<Result<{ cards: number }>
 
   const cards = snap().cards.filter((card) => card.setCode === code).length;
 
-  const ok = await commit((draft) => {
-    if (!draft.deletedSetCodes.includes(code)) draft.deletedSetCodes.push(code);
-    // ชุดที่เพิ่งสร้างเองในแดชบอร์ดให้เอาออกจากรายการที่เพิ่มด้วย
-    // ไม่งั้นไฟล์ส่วนต่างจะบวมขึ้นเรื่อย ๆ ด้วยชุดที่ทั้งเพิ่มและลบ
-    draft.sets = draft.sets.filter((s) => s.code !== code);
-  });
+  const ok = applied(await catalogStore.removeSet(code));
 
   if (!ok) return { ok: false, error: NOT_WRITABLE };
   return { ok: true, value: { cards } };
@@ -817,27 +788,28 @@ export async function createCard(input: NewCardInput): Promise<Result<Card>> {
     });
   }
 
-  const ok = await commit((draft) => {
-    for (const card of made) {
-      draft.cards.push(card);
-      draft.variants.push({
-        id: card.id,
-        cardId: card.id,
-        variantType: card.variantType,
-        isFoil: card.variantType !== "normal",
-      });
-    }
+  const variants: Variant[] = made.map((card) => ({
+    id: card.id,
+    cardId: card.id,
+    variantType: card.variantType,
+    isFoil: card.variantType !== "normal",
+  }));
 
-    if (input.priceThb && input.priceThb > 0) {
-      // ราคาที่กรอกตอนสร้างเป็นของใบธรรมดา ใบพิเศษไปกรอกในหน้าอัปเดตราคา
-      draft.pricePoints.push({
-        variantId: `${number}:normal`,
-        condition: "NM",
-        priceThb: Math.round(input.priceThb),
-        recordedAt: new Date().toISOString(),
-      });
-    }
-  });
+  // ราคาที่กรอกตอนสร้างเป็นของใบธรรมดา ใบพิเศษไปกรอกในหน้าอัปเดตราคา
+  const firstPrices: PricePoint[] =
+    input.priceThb && input.priceThb > 0
+      ? [
+          {
+            variantId: `${number}:normal`,
+            condition: "NM",
+            priceThb: Math.round(input.priceThb),
+            recordedAt: new Date().toISOString(),
+            source: "market",
+          },
+        ]
+      : [];
+
+  const ok = applied(await catalogStore.addCards(made, variants, firstPrices));
 
   if (!ok) return { ok: false, error: NOT_WRITABLE };
   return { ok: true, value: made[0] };
@@ -870,9 +842,7 @@ export async function updateCard(
   if (patch.cardType?.trim()) clean.cardType = patch.cardType.trim();
   if (patch.color?.trim()) clean.color = patch.color.trim();
 
-  const ok = await commit((draft) => {
-    draft.cardEdits[id] = { ...draft.cardEdits[id], ...clean };
-  });
+  const ok = applied(await catalogStore.editCard(id, clean));
 
   if (!ok) return { ok: false, error: NOT_WRITABLE };
   return { ok: true, value: { ...card, ...clean } };
@@ -888,15 +858,9 @@ export async function setCardImage(id: string, imageUrl: string | null): Promise
   const card = snap().cardById.get(id);
   if (!card) return { ok: false, error: "ไม่พบการ์ดนี้" };
 
-  const ok = await commit((draft) => {
-    const edit = { ...draft.cardEdits[id] };
-    if (imageUrl) {
-      edit.imageUrl = imageUrl;
-    } else {
-      delete edit.imageUrl;
-    }
-    draft.cardEdits[id] = edit;
-  });
+  // ถอดรูปออกเก็บเป็นค่าว่าง ไม่ได้ลบคีย์ทิ้ง เพราะ patch ถูกรวมทับของเดิมเสมอ
+  // ทั้งสองหลังบ้าน คีย์ที่หายไปจึงแปลว่า "ไม่ได้แก้ช่องนี้" ไม่ใช่ "เอารูปออก"
+  const ok = applied(await catalogStore.editCard(id, { imageUrl: imageUrl ?? "" }));
 
   if (!ok) return { ok: false, error: NOT_WRITABLE };
   return { ok: true, value: { ...card, imageUrl: imageUrl ?? undefined } };
@@ -905,9 +869,7 @@ export async function setCardImage(id: string, imageUrl: string | null): Promise
 export async function deleteCard(id: string): Promise<Result<true>> {
   if (!snap().cardById.has(id)) return { ok: false, error: "ไม่พบการ์ดนี้" };
 
-  const ok = await commit((draft) => {
-    if (!draft.deletedCardIds.includes(id)) draft.deletedCardIds.push(id);
-  });
+  const ok = applied(await catalogStore.removeCard(id));
 
   if (!ok) return { ok: false, error: NOT_WRITABLE };
   return { ok: true, value: true };

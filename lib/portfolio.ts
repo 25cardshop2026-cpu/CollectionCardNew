@@ -1,3 +1,4 @@
+import { db, usingSupabase } from "./db";
 import { isWritable, readJson, writeJson } from "./store";
 import type { Result } from "./users";
 import type { Condition } from "./types";
@@ -5,9 +6,8 @@ import type { Condition } from "./types";
 /**
  * พอร์ตการ์ดของผู้ใช้แต่ละคน
  *
- * เก็บแยกไฟล์ต่อคน (portfolios/<id>.json) ไม่รวมเป็นก้อนเดียว เพราะการเขียน
- * ของคนหนึ่งจะได้ไม่ไปทับของอีกคนที่กำลังบันทึกพร้อมกัน และหน้าพอร์ตอ่านแค่
- * ของเจ้าตัวคนเดียวอยู่แล้ว
+ * ต่อ Supabase แล้วเก็บในตาราง portfolio_holdings แถวละหนึ่งรายการ
+ * ยังไม่ต่อก็ถอยไปเก็บแยกไฟล์ต่อคน (portfolios/<id>.json) เหมือนเดิม
  *
  * เก็บเฉพาะ "มีอะไรกี่ใบ ซื้อมาเท่าไหร่" ส่วนมูลค่าปัจจุบันคำนวณสดจากราคาใน
  * แคตตาล็อกทุกครั้งที่เปิดหน้า จะได้ไม่มีตัวเลขค้างที่ไม่ตรงกับราคาจริง
@@ -31,25 +31,45 @@ function keyFor(userId: string): string {
   return `portfolios/${userId}.json`;
 }
 
-export async function listHoldings(userId: string): Promise<Holding[]> {
-  const data = await readJson<Holding[]>(keyFor(userId), []);
-  return Array.isArray(data) ? data : [];
+function storageWritable(): boolean {
+  return usingSupabase() || isWritable();
 }
 
-/** อ่านของล่าสุดก่อนเขียนเสมอ ด้วยเหตุผลเดียวกับ commit() ใน repo.ts */
-async function commit(
-  userId: string,
-  mutate: (draft: Holding[]) => Result<Holding[]>,
-): Promise<Result<Holding[]>> {
-  if (!isWritable()) return { ok: false, error: NOT_WRITABLE };
+interface HoldingRow {
+  id: string;
+  card_id: string;
+  condition: string;
+  quantity: number;
+  cost_thb: number | null;
+  note: string | null;
+  added_at: string;
+}
 
-  const outcome = mutate([...(await listHoldings(userId))]);
-  if (!outcome.ok) return outcome;
+function fromRow(row: HoldingRow): Holding {
+  return {
+    id: row.id,
+    cardId: row.card_id,
+    condition: row.condition as Condition,
+    quantity: row.quantity,
+    costThb: row.cost_thb,
+    ...(row.note ? { note: row.note } : {}),
+    addedAt: row.added_at,
+  };
+}
 
-  if (!(await writeJson(keyFor(userId), outcome.value))) {
-    return { ok: false, error: NOT_WRITABLE };
+export async function listHoldings(userId: string): Promise<Holding[]> {
+  const client = db();
+  if (client) {
+    const { data } = await client
+      .from("portfolio_holdings")
+      .select("id, card_id, condition, quantity, cost_thb, note, added_at")
+      .eq("user_id", userId)
+      .order("added_at");
+    return ((data ?? []) as HoldingRow[]).map(fromRow);
   }
-  return outcome;
+
+  const data = await readJson<Holding[]>(keyFor(userId), []);
+  return Array.isArray(data) ? data : [];
 }
 
 export interface HoldingInput {
@@ -84,6 +104,7 @@ export async function addHolding(
 ): Promise<Result<Holding>> {
   const invalid = validate(input);
   if (invalid) return { ok: false, error: invalid };
+  if (!storageWritable()) return { ok: false, error: NOT_WRITABLE };
 
   const holding: Holding = {
     id: crypto.randomUUID(),
@@ -95,8 +116,26 @@ export async function addHolding(
     addedAt: new Date().toISOString(),
   };
 
-  const result = await commit(userId, (draft) => ({ ok: true, value: [...draft, holding] }));
-  return result.ok ? { ok: true, value: holding } : result;
+  const client = db();
+  if (client) {
+    const { error } = await client.from("portfolio_holdings").insert({
+      id: holding.id,
+      user_id: userId,
+      card_id: holding.cardId,
+      condition: holding.condition,
+      quantity: holding.quantity,
+      cost_thb: holding.costThb,
+      note: holding.note ?? null,
+      added_at: holding.addedAt,
+    });
+    return error ? { ok: false, error: NOT_WRITABLE } : { ok: true, value: holding };
+  }
+
+  const current = await listHoldings(userId);
+  if (!(await writeJson(keyFor(userId), [...current, holding]))) {
+    return { ok: false, error: NOT_WRITABLE };
+  }
+  return { ok: true, value: holding };
 }
 
 export async function updateHolding(
@@ -104,30 +143,68 @@ export async function updateHolding(
   holdingId: string,
   patch: Pick<HoldingInput, "quantity" | "costThb">,
 ): Promise<Result<true>> {
-  const result = await commit(userId, (draft) => {
-    const index = draft.findIndex((h) => h.id === holdingId);
-    if (index < 0) return { ok: false, error: "ไม่พบรายการนี้ในพอร์ต" };
+  if (!storageWritable()) return { ok: false, error: NOT_WRITABLE };
 
-    const invalid = validate({ ...draft[index], ...patch });
-    if (invalid) return { ok: false, error: invalid };
+  const client = db();
+  if (client) {
+    // ผูก user_id ไว้ในเงื่อนไขด้วยเสมอ ไม่ใช่แค่ id ของรายการ
+    // ไม่งั้นคนที่เดา id ถูกจะแก้พอร์ตของคนอื่นได้
+    const { data, error } = await client
+      .from("portfolio_holdings")
+      .update({ quantity: patch.quantity, cost_thb: patch.costThb })
+      .eq("id", holdingId)
+      .eq("user_id", userId)
+      .select("id")
+      .maybeSingle();
 
-    draft[index] = { ...draft[index], ...patch };
-    return { ok: true, value: draft };
-  });
+    if (error) {
+      // ค่าที่ผิดกติกาถูกดักด้วย CHECK ของตาราง จึงบอกให้ตรงว่าแก้อะไร
+      const invalid = validate({ cardId: "x", condition: "NM", ...patch });
+      return { ok: false, error: invalid ?? NOT_WRITABLE };
+    }
+    return data ? { ok: true, value: true } : { ok: false, error: "ไม่พบรายการนี้ในพอร์ต" };
+  }
 
-  return result.ok ? { ok: true, value: true } : result;
+  const current = await listHoldings(userId);
+  const index = current.findIndex((h) => h.id === holdingId);
+  if (index < 0) return { ok: false, error: "ไม่พบรายการนี้ในพอร์ต" };
+
+  const invalid = validate({ ...current[index], ...patch });
+  if (invalid) return { ok: false, error: invalid };
+
+  const next = [...current];
+  next[index] = { ...next[index], ...patch };
+
+  if (!(await writeJson(keyFor(userId), next))) return { ok: false, error: NOT_WRITABLE };
+  return { ok: true, value: true };
 }
 
 export async function removeHolding(
   userId: string,
   holdingId: string,
 ): Promise<Result<true>> {
-  const result = await commit(userId, (draft) => {
-    if (!draft.some((h) => h.id === holdingId)) {
-      return { ok: false, error: "ไม่พบรายการนี้ในพอร์ต" };
-    }
-    return { ok: true, value: draft.filter((h) => h.id !== holdingId) };
-  });
+  if (!storageWritable()) return { ok: false, error: NOT_WRITABLE };
 
-  return result.ok ? { ok: true, value: true } : result;
+  const client = db();
+  if (client) {
+    const { data, error } = await client
+      .from("portfolio_holdings")
+      .delete()
+      .eq("id", holdingId)
+      .eq("user_id", userId)
+      .select("id")
+      .maybeSingle();
+
+    if (error) return { ok: false, error: NOT_WRITABLE };
+    return data ? { ok: true, value: true } : { ok: false, error: "ไม่พบรายการนี้ในพอร์ต" };
+  }
+
+  const current = await listHoldings(userId);
+  if (!current.some((h) => h.id === holdingId)) {
+    return { ok: false, error: "ไม่พบรายการนี้ในพอร์ต" };
+  }
+
+  const next = current.filter((h) => h.id !== holdingId);
+  if (!(await writeJson(keyFor(userId), next))) return { ok: false, error: NOT_WRITABLE };
+  return { ok: true, value: true };
 }

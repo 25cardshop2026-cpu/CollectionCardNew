@@ -1,4 +1,5 @@
 import { equals, hmac } from "./auth";
+import { db } from "./db";
 import { readJson, writeJson } from "./store";
 import { findUserById, type User } from "./users";
 
@@ -58,11 +59,38 @@ export interface PendingReset {
   expiresAt: string;
 }
 
+interface ResetRow {
+  email: string;
+  display_name: string;
+  path: string;
+  requested_at: string;
+  expires_at: string;
+}
+
 export async function listPendingResets(): Promise<PendingReset[]> {
+  const client = db();
+
+  if (client) {
+    // หมดอายุแล้วไม่ต้องโชว์ ลิงก์ใช้ไม่ได้อยู่ดี — กรองที่ฐานข้อมูลไปเลย
+    const { data } = await client
+      .from("password_resets")
+      .select("*")
+      .gt("expires_at", new Date().toISOString())
+      .order("requested_at", { ascending: false })
+      .limit(KEEP);
+
+    return ((data ?? []) as ResetRow[]).map((row) => ({
+      email: row.email,
+      displayName: row.display_name,
+      path: row.path,
+      requestedAt: row.requested_at,
+      expiresAt: row.expires_at,
+    }));
+  }
+
   const all = await readJson<PendingReset[]>(PENDING_KEY, []);
   if (!Array.isArray(all)) return [];
 
-  // หมดอายุแล้วไม่ต้องโชว์ ลิงก์ใช้ไม่ได้อยู่ดี
   const now = Date.now();
   return all
     .filter((entry) => new Date(entry.expiresAt).getTime() > now)
@@ -70,13 +98,34 @@ export async function listPendingResets(): Promise<PendingReset[]> {
 }
 
 export async function recordPendingReset(entry: PendingReset): Promise<void> {
+  const client = db();
+
+  if (client) {
+    // อีเมลเป็น primary key — คนเดิมกดขอซ้ำจึงทับของเดิมให้เอง
+    // ไม่งั้นแอดมินจะเห็นหลายลิงก์แล้วไม่รู้ว่าอันไหนใช้ได้
+    await client.from("password_resets").upsert({
+      email: entry.email,
+      display_name: entry.displayName,
+      path: entry.path,
+      requested_at: entry.requestedAt,
+      expires_at: entry.expiresAt,
+    });
+    return;
+  }
+
   const live = await listPendingResets();
-  // คนเดิมกดขอซ้ำ ให้เหลือแค่ลิงก์ล่าสุด ไม่งั้นแอดมินจะไม่รู้ว่าอันไหนใช้ได้
   const others = live.filter((item) => item.email !== entry.email);
   await writeJson(PENDING_KEY, [entry, ...others].slice(0, KEEP));
 }
 
 export async function clearPendingReset(email: string): Promise<void> {
+  const client = db();
+
+  if (client) {
+    await client.from("password_resets").delete().eq("email", email);
+    return;
+  }
+
   const live = await listPendingResets();
   await writeJson(
     PENDING_KEY,

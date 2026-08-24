@@ -1,4 +1,5 @@
 import { hashPassword, verifyPassword } from "./auth";
+import { db, usingSupabase } from "./db";
 import { isWritable, readJson, writeJson } from "./store";
 
 /**
@@ -7,9 +8,9 @@ import { isWritable, readJson, writeJson } from "./store";
  * คนที่ไม่ล็อกอินยังดูราคาและค้นหาได้ทุกอย่างเหมือนเดิม — บัญชีมีไว้เพื่อ
  * ผูกพอร์ตเข้ากับคนคนหนึ่งเท่านั้น ไม่ได้เอาไว้กั้นเนื้อหา
  *
- * เก็บทั้งหมดในไฟล์ JSON ไฟล์เดียว เพราะจำนวนผู้ใช้ยังอยู่ในหลักพัน
- * อ่านทั้งก้อนต่อ request ยังถูกกว่าการดูแลฐานข้อมูลแยกอีกตัว
- * วันที่คนเยอะกว่านี้ค่อยเปลี่ยนไส้ในของไฟล์นี้เป็น query โดยไม่ต้องแก้หน้าเว็บ
+ * ต่อ Supabase แล้วจะเก็บในตาราง users และค้นทีละแถวด้วย query
+ * ยังไม่ต่อก็ถอยไปใช้ไฟล์ JSON ก้อนเดียวเหมือนเดิม (อ่านทั้งก้อนต่อ request)
+ * ทั้งสองทางให้ผลหน้าตาเดียวกัน โค้ดที่เรียกจึงไม่ต้องรู้ว่าข้อมูลอยู่ที่ไหน
  */
 
 const USERS_KEY = "users.json";
@@ -78,21 +79,70 @@ function looksLikeEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+/**
+ * แถวในตาราง users ของ Supabase — ชื่อคอลัมน์เป็น snake_case ตามธรรมเนียม SQL
+ * ส่วนในโค้ดใช้ camelCase จึงต้องมีตัวแปลงคั่นกลาง
+ */
+interface UserRow {
+  id: string;
+  email: string;
+  display_name: string;
+  password_hash: string;
+  created_at: string;
+}
+
+function fromRow(row: UserRow): User {
+  return {
+    id: row.id,
+    email: row.email,
+    displayName: row.display_name,
+    passwordHash: row.password_hash,
+    createdAt: row.created_at,
+  };
+}
+
+/** ใช้เฉพาะกับหลังบ้านแบบไฟล์ — ฝั่ง Supabase ค้นทีละแถวด้วย query แทน */
 async function loadUsers(): Promise<User[]> {
   const data = await readJson<User[]>(USERS_KEY, []);
   return Array.isArray(data) ? data : [];
 }
 
 export async function findUserById(id: string): Promise<User | undefined> {
+  const client = db();
+  if (client) {
+    const { data } = await client.from("users").select("*").eq("id", id).maybeSingle();
+    return data ? fromRow(data as UserRow) : undefined;
+  }
   return (await loadUsers()).find((user) => user.id === id);
 }
 
 export async function findUserByEmail(email: string): Promise<User | undefined> {
   const wanted = normalizeEmail(email);
+
+  const client = db();
+  if (client) {
+    const { data } = await client.from("users").select("*").eq("email", wanted).maybeSingle();
+    return data ? fromRow(data as UserRow) : undefined;
+  }
   return (await loadUsers()).find((user) => user.email === wanted);
 }
 
+/** รายชื่อบัญชีทั้งหมด — เรียกจากหน้าแดชบอร์ดที่กันสิทธิ์แล้วเท่านั้น */
+export async function listAllUsers(): Promise<User[]> {
+  const client = db();
+  if (client) {
+    const { data } = await client.from("users").select("*").order("created_at");
+    return ((data ?? []) as UserRow[]).map(fromRow);
+  }
+  return loadUsers();
+}
+
 export const MIN_PASSWORD_LENGTH = 8;
+
+/** ต่อ Supabase แล้วถือว่าเขียนได้เสมอ ไม่งั้นดูที่ดิสก์/Blob แบบเดิม */
+function storageWritable(): boolean {
+  return usingSupabase() || isWritable();
+}
 
 export async function registerUser(input: {
   email: string;
@@ -107,15 +157,8 @@ export async function registerUser(input: {
   if (input.password.length < MIN_PASSWORD_LENGTH) {
     return { ok: false, error: `รหัสผ่านต้องยาวอย่างน้อย ${MIN_PASSWORD_LENGTH} ตัวอักษร` };
   }
-  if (!isWritable()) {
+  if (!storageWritable()) {
     return { ok: false, error: "สมัครสมาชิกไม่ได้ตอนนี้ เพราะที่เก็บข้อมูลเขียนไม่ได้" };
-  }
-
-  // อ่านของล่าสุดก่อนเขียนเสมอ ไม่ใช้สำเนาที่ค้างอยู่ เพราะ instance อื่น
-  // อาจเพิ่งสมัครสมาชิกคนใหม่ไปแล้ว
-  const users = await loadUsers();
-  if (users.some((user) => user.email === email)) {
-    return { ok: false, error: "อีเมลนี้มีคนใช้แล้ว" };
   }
 
   const user: User = {
@@ -125,6 +168,33 @@ export async function registerUser(input: {
     passwordHash: await hashPassword(input.password),
     createdAt: new Date().toISOString(),
   };
+
+  const client = db();
+  if (client) {
+    // ปล่อยให้ unique constraint ของคอลัมน์ email เป็นคนตัดสินว่าซ้ำไหม
+    // การเช็คก่อนแล้วค่อยเขียนมีช่องให้สองคนสมัครอีเมลเดียวกันพร้อมกันได้
+    const { error } = await client.from("users").insert({
+      id: user.id,
+      email: user.email,
+      display_name: user.displayName,
+      password_hash: user.passwordHash,
+      created_at: user.createdAt,
+    });
+
+    if (error) {
+      return error.code === "23505"
+        ? { ok: false, error: "อีเมลนี้มีคนใช้แล้ว" }
+        : { ok: false, error: "บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง" };
+    }
+    return { ok: true, value: user };
+  }
+
+  // อ่านของล่าสุดก่อนเขียนเสมอ ไม่ใช้สำเนาที่ค้างอยู่ เพราะ instance อื่น
+  // อาจเพิ่งสมัครสมาชิกคนใหม่ไปแล้ว
+  const users = await loadUsers();
+  if (users.some((existing) => existing.email === email)) {
+    return { ok: false, error: "อีเมลนี้มีคนใช้แล้ว" };
+  }
 
   if (!(await writeJson(USERS_KEY, [...users, user]))) {
     return { ok: false, error: "บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง" };
@@ -142,15 +212,31 @@ export async function setPassword(userId: string, password: string): Promise<Res
   if (password.length < MIN_PASSWORD_LENGTH) {
     return { ok: false, error: `รหัสผ่านต้องยาวอย่างน้อย ${MIN_PASSWORD_LENGTH} ตัวอักษร` };
   }
-  if (!isWritable()) {
+  if (!storageWritable()) {
     return { ok: false, error: "บันทึกไม่ได้ตอนนี้ เพราะที่เก็บข้อมูลเขียนไม่ได้" };
+  }
+
+  const passwordHash = await hashPassword(password);
+
+  const client = db();
+  if (client) {
+    const { data, error } = await client
+      .from("users")
+      .update({ password_hash: passwordHash })
+      .eq("id", userId)
+      .select("*")
+      .maybeSingle();
+
+    if (error) return { ok: false, error: "บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง" };
+    if (!data) return { ok: false, error: "ไม่พบบัญชีนี้" };
+    return { ok: true, value: fromRow(data as UserRow) };
   }
 
   const users = await loadUsers();
   const index = users.findIndex((user) => user.id === userId);
   if (index < 0) return { ok: false, error: "ไม่พบบัญชีนี้" };
 
-  const updated: User = { ...users[index], passwordHash: await hashPassword(password) };
+  const updated: User = { ...users[index], passwordHash };
   const next = [...users];
   next[index] = updated;
 
