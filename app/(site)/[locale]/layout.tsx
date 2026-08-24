@@ -72,7 +72,7 @@ export default async function SiteLayout({
       <body className="font-sans site">
         <div className="flex min-h-screen flex-col">
           <header className="sticky top-0 z-50 bg-[var(--glass)] backdrop-blur-xl">
-            <div className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-5 sm:px-8 xl:gap-6">
+            <div className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-5 sm:px-8">
               <Link
                 href={p("/")}
                 className="group flex shrink-0 items-center gap-2.5 leading-none"
@@ -90,7 +90,7 @@ export default async function SiteLayout({
 
               {/* whitespace-nowrap สำคัญ ไม่งั้นคำไทยอย่าง "หน้าแรก" ถูกตัดเป็นสองบรรทัด
                   เวลาที่ยังพอมีที่ แต่ไม่พอสำหรับทั้งคำ */}
-              <nav className="hidden shrink-0 items-center gap-5 text-[13.5px] whitespace-nowrap text-ink-2 lg:flex">
+              <nav className="hidden shrink-0 items-center gap-4 text-[13.5px] whitespace-nowrap text-ink-2 lg:flex">
                 {nav.map((item) => (
                   <NavLink
                     key={item.href}
@@ -104,8 +104,10 @@ export default async function SiteLayout({
                 ))}
               </nav>
 
-              {/* ช่องค้นหายืดตามที่ว่างที่เหลือ จอแคบใช้ลิงก์ในแถวเมนูข้างล่างแทน */}
-              <div className="mx-auto hidden w-full max-w-[260px] min-w-[150px] flex-1 xl:block">
+              {/* ช่องค้นหากินที่ว่างที่เหลือทั้งหมด เพราะการค้นหาคือสิ่งที่คนเข้ามา
+                  ทำบ่อยที่สุด — ต่ำกว่า xl พื้นที่ไม่พอให้ทั้งเมนูและช่องค้นหา
+                  จึงถอยไปเป็นปุ่มแว่นขยายกับลิงก์ในแถวเมนูข้างล่างแทน */}
+              <div className="hidden w-full min-w-[200px] flex-1 xl:block">
                 <SearchBox
                   action={p("/search")}
                   placeholder={t.search.placeholder}
@@ -114,15 +116,29 @@ export default async function SiteLayout({
                 />
               </div>
 
-              <div className="ml-auto flex shrink-0 items-center gap-2.5 xl:ml-0">
-                <LocaleSwitcher current={locale} />
-                {/* จอแคบใช้ลิงก์ในแถวเมนูข้างล่างแทน จะได้ไม่ซ้ำกัน */}
+              <div className="ml-auto flex shrink-0 items-center gap-2.5">
+                {/* ช่วงจอกลาง (lg ถึง xl) เมนูหลักโผล่แล้วแต่แถวเมนูข้างล่างหายไป
+                    ถ้าไม่มีปุ่มนี้จะไม่มีทางเข้าหน้าค้นหาเลยในช่วงความกว้างนั้น */}
                 <Link
-                  href="/admin"
-                  className="hidden rounded-full border border-line-strong px-3 py-1.5 font-mono text-[10px] whitespace-nowrap text-ink-3 uppercase tracking-[0.1em] transition-colors hover:border-accent hover:text-accent lg:inline-block"
+                  href={p("/search")}
+                  aria-label={t.search.title}
+                  className="hidden h-8 w-8 items-center justify-center rounded-full border border-line-strong text-ink-3 transition-colors hover:border-accent hover:text-accent lg:inline-flex xl:hidden"
                 >
-                  {t.nav.dashboard}
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    aria-hidden="true"
+                  >
+                    <circle cx="11" cy="11" r="7" />
+                    <path d="m20 20-3.5-3.5" />
+                  </svg>
                 </Link>
+
                 {/* ล็อกอินแล้วปุ่มหลักเปลี่ยนเป็นทางเข้าพอร์ต เพราะนั่นคือสิ่งที่
                     คนที่มีบัญชีกลับมาทำ ไม่ใช่การเริ่มใช้งานใหม่อีกรอบ */}
                 {user ? (
@@ -153,10 +169,14 @@ export default async function SiteLayout({
                     </Link>
                   </>
                 )}
+
+                {/* ตัวสลับภาษาอยู่ขวาสุด เป็นของที่กดครั้งเดียวแล้วแทบไม่กดอีก
+                    จึงไม่ควรไปแย่งที่กับปุ่มที่คนกดจริงทุกวัน */}
+                <LocaleSwitcher current={locale} />
               </div>
             </div>
             {/* แถวเมนูของจอแคบ — เมนูหลักถูกซ่อนต่ำกว่า lg ถ้าไม่มีแถวนี้
-                คนใช้มือถือจะเข้าหน้าอื่นหรือแดชบอร์ดไม่ได้เลยนอกจากพิมพ์ URL เอง
+                คนใช้มือถือจะเข้าหน้าอื่นไม่ได้เลยนอกจากพิมพ์ URL เอง
                 เลื่อนแนวนอนได้ ไม่ต้องมีปุ่มแฮมเบอร์เกอร์ที่ต้องใช้ JS */}
             <nav className="flex items-center gap-2 overflow-x-auto px-5 pb-2.5 [scrollbar-width:none] sm:px-8 lg:hidden [&::-webkit-scrollbar]:hidden">
               {nav.map((item) => (
@@ -195,12 +215,6 @@ export default async function SiteLayout({
                   {t.nav.login}
                 </Link>
               )}
-              <Link
-                href="/admin"
-                className="shrink-0 rounded-full border border-accent-line px-3 py-1 font-mono text-[10.5px] whitespace-nowrap text-accent uppercase"
-              >
-                {t.nav.dashboard}
-              </Link>
             </nav>
 
             <div className="accent-rule h-px" aria-hidden="true" />
