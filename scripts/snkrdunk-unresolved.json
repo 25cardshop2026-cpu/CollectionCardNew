@@ -1,0 +1,26 @@
+[
+  {
+    "id": "OP01-016:normal",
+    "setCode": "OP-01",
+    "number": "OP01-016",
+    "nameEn": "Nami",
+    "variantType": "normal",
+    "query": "Nami OP01-016"
+  },
+  {
+    "id": "OP01-022:normal",
+    "setCode": "OP-01",
+    "number": "OP01-022",
+    "nameEn": "Brook",
+    "variantType": "normal",
+    "query": "Brook OP01-022"
+  },
+  {
+    "id": "OP01-029:parallel",
+    "setCode": "OP-01",
+    "number": "OP01-029",
+    "nameEn": "Radical Beam!!",
+    "variantType": "parallel",
+    "query": "Radical Beam!! OP01-029"
+  }
+]

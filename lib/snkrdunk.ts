@@ -151,9 +151,24 @@ async function fetchOne(
   }
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function chunk<T>(items: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < items.length; i += size) chunks.push(items.slice(i, i + size));
+  return chunks;
+}
+
+/** ยิงพร้อมกันเกิน ~10 คำขอทีเดียวแล้ว SNKRDUNK เริ่มบล็อก (เจอมาแล้วจริง — ทั้งล็อต
+ * ตอบว่าไม่มีราคากลับมาเลยสักใบ) จึงยิงเป็นคลื่นเล็ก ๆ แทนการยิงพร้อมกันทั้งหมด */
+const CONCURRENCY = 8;
+const WAVE_DELAY_MS = 150;
+
 /**
  * เอ็นด์พอยต์นี้รับได้ทีละสินค้าเท่านั้น ไม่มีแบบยิงหลายรายการพร้อมกันในคำขอเดียว
- * จึงยิงพร้อมกันแบบขนานแทน — จำนวนการ์ดที่ผูกไว้จริงไม่น่าเยอะจนเป็นปัญหา
+ * จึงยิงพร้อมกันแบบขนานแทน แต่จำกัดจำนวนพร้อมกันไว้ไม่ให้โดนบล็อก
  */
 export async function fetchSnkrdunkPrices(productIds: string[]): Promise<SnkrdunkFetchResult> {
   const nm = new Map<string, number>();
@@ -164,17 +179,20 @@ export async function fetchSnkrdunkPrices(productIds: string[]): Promise<Snkrdun
 
   const rates = await ratesToThb();
 
-  await Promise.all(
-    uniqueIds.map(async (id) => {
-      const result = await fetchOne(id, rates);
-      if (!result || result.nm === null) {
-        missing.push(id);
-        return;
-      }
-      nm.set(id, result.nm);
-      if (result.psa10 !== null) psa10.set(id, result.psa10);
-    }),
-  );
+  for (const wave of chunk(uniqueIds, CONCURRENCY)) {
+    await Promise.all(
+      wave.map(async (id) => {
+        const result = await fetchOne(id, rates);
+        if (!result || result.nm === null) {
+          missing.push(id);
+          return;
+        }
+        nm.set(id, result.nm);
+        if (result.psa10 !== null) psa10.set(id, result.psa10);
+      }),
+    );
+    await sleep(WAVE_DELAY_MS);
+  }
 
   return { nm, psa10, missing };
 }
