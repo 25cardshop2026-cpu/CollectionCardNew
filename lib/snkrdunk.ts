@@ -8,6 +8,19 @@
 
 const SNKRDUNK_SUMMARIES_URL = "https://snkrdunk.com/en/v1/products/summaries";
 const CODE_PREFIX = "SW---";
+const TRADING_CARD_URL_PATTERN = /trading-cards\/(\d+)/;
+
+/**
+ * แกะเลขสินค้าออกจากสิ่งที่แอดมินวางมา — จะพิมพ์แค่ตัวเลข หรือวาง URL เต็ม ๆ
+ * ของหน้าสินค้า (เช่น https://snkrdunk.com/en/trading-cards/864495) ก็ใช้ได้ทั้งคู่
+ * คืน null ถ้าแกะไม่ออก (ไม่ใช่ตัวเลขล้วนและไม่ใช่ลิงก์หน้าสินค้า)
+ */
+export function extractSnkrdunkCode(input: string): string | null {
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+  if (/^\d+$/.test(trimmed)) return trimmed;
+  return trimmed.match(TRADING_CARD_URL_PATTERN)?.[1] ?? null;
+}
 
 /** จำนวนรหัสต่อคำขอหนึ่งครั้ง — กันไม่ให้ query string ยาวเกินไปและลดความเสี่ยงโดนจำกัดอัตรา */
 const BATCH_SIZE = 25;
