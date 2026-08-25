@@ -32,7 +32,12 @@ export async function GET(request: Request) {
       `https://snkrdunk.com/en/v2/search?keyword=${encodeURIComponent(keyword)}&page=1&perPage=20`,
       { headers: { accept: "application/json" }, cache: "no-store" },
     );
-    if (!res.ok) return NextResponse.json({ error: "ค้นหาไม่สำเร็จ" }, { status: 502 });
+    if (!res.ok) {
+      return NextResponse.json(
+        { error: "ค้นหาไม่สำเร็จ", upstreamStatus: res.status, upstreamBody: (await res.text()).slice(0, 500) },
+        { status: 502 },
+      );
+    }
 
     const data = (await res.json()) as SearchResponse;
     const results = (data.search?.rankingProducts ?? [])
@@ -47,7 +52,10 @@ export async function GET(request: Request) {
       }));
 
     return NextResponse.json({ results });
-  } catch {
-    return NextResponse.json({ error: "ค้นหาไม่สำเร็จ" }, { status: 502 });
+  } catch (err) {
+    return NextResponse.json(
+      { error: "ค้นหาไม่สำเร็จ", exception: err instanceof Error ? err.message : String(err) },
+      { status: 502 },
+    );
   }
 }
