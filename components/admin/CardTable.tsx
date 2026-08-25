@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { deleteCardAction } from "@/lib/actions";
 import { TIER_SURFACE, rarityTier } from "@/lib/rarity";
 
@@ -118,6 +118,57 @@ export function CardTable({ rows, setCode }: { rows: CardTableRow[]; setCode: st
 
   // ref ของช่องราคาทุกช่อง เพื่อให้ Enter / ลูกศรกระโดดไปแถวถัดไปในคอลัมน์เดิมได้
   const inputs = useRef<Record<string, HTMLInputElement | null>>({});
+
+  // ตามค่า saved ล่าสุดผ่าน ref แทนการปิดคลุมตัวแปร state ตรง ๆ ในตัวจับเวลา
+  // ด้านล่าง กัน effect ต้องสร้างใหม่ทุกครั้งที่ saved เปลี่ยน (ซึ่งเปลี่ยนบ่อยมาก)
+  const savedRef = useRef(saved);
+  savedRef.current = saved;
+
+  /*
+    โพลลิ่งราคาทุก 3 วิ ให้พนักงานเครื่องอื่นเห็นราคาที่เพื่อนร่วมงานเพิ่งกรอก
+    โดยไม่ต้องกดรีเฟรชเอง — อัปเดตเฉพาะช่องที่ "ยังไม่ถูกแตะ" (ค่าที่พิมพ์อยู่
+    ตรงกับค่าที่เคยบันทึกไว้ล่าสุด) เหมือนตอนรับราคากลับมาหลังบันทึกทุกประการ
+    กันไม่ให้ไปทับสิ่งที่คนกำลังพิมพ์อยู่กลางคัน
+  */
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/admin-prices?set=${encodeURIComponent(setCode)}`);
+        if (!res.ok) return;
+        const data = (await res.json()) as {
+          rows?: { cardId: string; prices: Record<PriceField, number | null> }[];
+        };
+        if (!data.rows) return;
+
+        const currentSaved = savedRef.current;
+
+        setValues((current) => {
+          const draft = { ...current };
+          for (const row of data.rows!) {
+            for (const field of PRICE_FIELDS) {
+              const key = `${row.cardId}:${field}`;
+              const fresh = row.prices[field]?.toString() ?? "";
+              if (draft[key] === (currentSaved[key] ?? "")) draft[key] = fresh;
+            }
+          }
+          return draft;
+        });
+        setSaved((current) => {
+          const draft = { ...current };
+          for (const row of data.rows!) {
+            for (const field of PRICE_FIELDS) {
+              draft[`${row.cardId}:${field}`] = row.prices[field]?.toString() ?? "";
+            }
+          }
+          return draft;
+        });
+      } catch {
+        // เงียบไว้ — พลาดรอบนี้ก็รอบหน้าค่อยลองใหม่ ไม่ต้องแจ้งเตือนคนใช้งาน
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [setCode]);
 
   /*
     กล่องดูรูปขยาย ใช้ <dialog> ของเบราว์เซอร์ตรง ๆ ผ่าน showModal()
