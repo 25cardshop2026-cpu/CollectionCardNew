@@ -7,7 +7,8 @@ import { cardName, setName, setNameAlt } from "@/lib/display";
 import { formatDate } from "@/lib/format";
 import { getDictionary } from "@/lib/i18n";
 import { isLocale, localePath } from "@/lib/i18n/config";
-import { getGame, getSetBySlug, listCardsInSet, loadState } from "@/lib/repo";
+import { getChannelPrice, getGame, getSetBySlug, listCardsInSet, loadState } from "@/lib/repo";
+import type { PriceCurrent } from "@/lib/types";
 
 type SortKey = "number" | "price" | "change";
 
@@ -64,14 +65,25 @@ export default async function SetPage({
   const rarities = [...new Set(all.map((row) => row.card.rarity))];
   const sortKey: SortKey = sort === "price" || sort === "change" ? sort : "number";
 
+  // หน้านี้โชว์ราคา PSA10 จาก SNKRDUNK แทนราคาตลาดหลัก — ต่างจากหน้าอื่นในเว็บ
+  // ตั้งใจแยกไว้เฉพาะกริดชุดนี้ตามที่ขอ ไม่กระทบหน้ารายละเอียดการ์ด/หน้าแรก/ค้นหา
+  const snkrdunkPsa10Of = (variants: { id: string }[]): PriceCurrent | null =>
+    variants.reduce<PriceCurrent | null>((best, variant) => {
+      const price = getChannelPrice(variant.id, "PSA10", "snkrdunk");
+      return price && (!best || price.priceThb > best.priceThb) ? price : best;
+    }, null);
+
   const rows = all
     .filter((row) => !rarity || row.card.rarity === rarity)
     .sort((a, b) => {
       if (sortKey === "price") {
-        return (b.headline?.priceThb ?? 0) - (a.headline?.priceThb ?? 0);
+        return (snkrdunkPsa10Of(b.variants)?.priceThb ?? 0) - (snkrdunkPsa10Of(a.variants)?.priceThb ?? 0);
       }
       if (sortKey === "change") {
-        return Math.abs(b.headline?.change7d ?? 0) - Math.abs(a.headline?.change7d ?? 0);
+        return (
+          Math.abs(snkrdunkPsa10Of(b.variants)?.change7d ?? 0) -
+          Math.abs(snkrdunkPsa10Of(a.variants)?.change7d ?? 0)
+        );
       }
       return a.card.number.localeCompare(b.card.number);
     });
@@ -145,7 +157,8 @@ export default async function SetPage({
       </div>
 
       <ul className="grid grid-cols-2 gap-x-5 gap-y-8 sm:grid-cols-3 lg:grid-cols-5">
-        {rows.map(({ card, headline }) => {
+        {rows.map(({ card, variants }) => {
+          const psa10 = snkrdunkPsa10Of(variants);
           return (
             <li key={card.id}>
               <Link href={p(`/card/${card.slug}`)} className="group flex flex-col gap-3">
@@ -154,12 +167,19 @@ export default async function SetPage({
                   <span className="text-[13.5px] leading-snug transition-colors group-hover:text-accent">
                     {cardName(card, locale)}
                   </span>
-                  <PriceTag
-                    priceThb={headline?.priceThb ?? null}
-                    change7d={headline?.change7d ?? null}
-                    size="sm"
-                    locale={locale}
-                  />
+                  <div className="flex items-baseline gap-1.5">
+                    <PriceTag
+                      priceThb={psa10?.priceThb ?? null}
+                      change7d={psa10?.change7d ?? null}
+                      size="sm"
+                      locale={locale}
+                    />
+                    {psa10 && (
+                      <span className="font-mono text-[9.5px] tracking-[0.1em] text-ink-3 uppercase">
+                        PSA10
+                      </span>
+                    )}
+                  </div>
                   {card.variantType !== "normal" && (
                     <span className="font-mono text-[9.5px] tracking-[0.12em] text-accent uppercase">
                       {t.variant[card.variantType]}
