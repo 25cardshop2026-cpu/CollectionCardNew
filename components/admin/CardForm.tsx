@@ -103,6 +103,16 @@ export function CardForm({
         hint="หน้าร้านหรือหน้าประมูลที่ใช้ดูราคาใบนี้ — จะขึ้นเป็นปุ่มเปิดในหน้าอัปเดตราคา เว้นว่าง = ไม่มีต้นทาง"
       />
 
+      {isEdit && (
+        <Field
+          label="เลขสินค้า SNKRDUNK"
+          name="snkrdunkCode"
+          defaultValue={card?.snkrdunkCode}
+          placeholder="864495"
+          hint="ตัวเลขท้าย URL หน้าสินค้าบน snkrdunk.com เช่น .../trading-cards/864495 → ใส่ 864495 — ใส่แล้วช่อง SNKRDUNK จะได้ราคาต่ำสุดปัจจุบันอัปเดตอัตโนมัติตามรอบ เว้นว่าง = ไม่ซิงก์ใบนี้"
+        />
+      )}
+
       {!isEdit && (
         <p className="-mt-2 text-[11.5px] text-ink-3">
           ลิงก์นี้จะติดไปให้ทุกแบบพิมพ์ที่สร้างพร้อมกัน แก้แยกทีละใบได้ทีหลัง

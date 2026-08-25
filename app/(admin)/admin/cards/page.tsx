@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { CardTable, type CardTableRow } from "@/components/admin/CardTable";
+import { SnkrdunkSyncButton } from "@/components/admin/SnkrdunkSyncButton";
 import { listAdminPriceRows, listAllSets, loadState } from "@/lib/repo";
 import { VARIANT_LABEL } from "@/lib/types";
 
@@ -60,7 +61,8 @@ export default async function AdminCardsPage({
             หรือคลิกออกจากช่อง และเก็บเป็นประวัติราคาแถวใหม่เสมอ ไม่เขียนทับของเดิม
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <SnkrdunkSyncButton />
           <Link
             href={`/admin/sets/new`}
             className="rounded-[4px] border border-line-strong px-3 py-1.5 text-[13px] hover:border-accent hover:text-accent"

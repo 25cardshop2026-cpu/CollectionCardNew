@@ -555,6 +555,28 @@ export function listAdminPriceRows(setCode: string): AdminPriceRow[] {
     );
 }
 
+export interface SnkrdunkSyncTarget {
+  card: Card;
+  variantId: string;
+  snkrdunkCode: string;
+}
+
+/**
+ * การ์ดทุกใบที่ผูกเลขสินค้า SNKRDUNK ไว้ — ใบไหนไม่ได้ใส่ก็ไม่ติดในรายการนี้
+ * นี่คือรายการที่ job ซิงก์ราคาอัตโนมัติจะไปดึงราคามาอัปเดตให้
+ */
+export function listSnkrdunkSyncTargets(): SnkrdunkSyncTarget[] {
+  const targets: SnkrdunkSyncTarget[] = [];
+  for (const card of snap().cards) {
+    const snkrdunkCode = card.snkrdunkCode?.trim();
+    if (!snkrdunkCode) continue;
+    const variant = getVariants(card.id)[0];
+    if (!variant) continue;
+    targets.push({ card, variantId: variant.id, snkrdunkCode });
+  }
+  return targets;
+}
+
 export interface AdminStats {
   games: number;
   sets: number;
@@ -818,7 +840,10 @@ export async function createCard(input: NewCardInput): Promise<Result<Card>> {
 export async function updateCard(
   id: string,
   patch: Partial<
-    Pick<Card, "nameTh" | "nameEn" | "rarity" | "cardType" | "color" | "sourceUrl">
+    Pick<
+      Card,
+      "nameTh" | "nameEn" | "rarity" | "cardType" | "color" | "sourceUrl" | "snkrdunkCode"
+    >
   >,
 ): Promise<Result<Card>> {
   const card = snap().cardById.get(id);
@@ -835,6 +860,10 @@ export async function updateCard(
     const sourceUrl = cleanSourceUrl(patch.sourceUrl);
     if (!sourceUrl.ok) return sourceUrl;
     clean.sourceUrl = sourceUrl.value;
+  }
+  // ลบทิ้งได้เหมือนลิงก์ต้นทาง — ว่าง = เอาใบนี้ออกจากรายการที่ซิงก์ราคาอัตโนมัติ
+  if (patch.snkrdunkCode !== undefined) {
+    clean.snkrdunkCode = patch.snkrdunkCode.trim();
   }
   if (patch.nameTh?.trim()) clean.nameTh = patch.nameTh.trim();
   if (patch.nameEn?.trim()) clean.nameEn = patch.nameEn.trim();

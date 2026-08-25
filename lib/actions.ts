@@ -86,6 +86,7 @@ export async function updateCardAction(
     cardType: text(form, "cardType"),
     color: text(form, "color"),
     sourceUrl: text(form, "sourceUrl"),
+    snkrdunkCode: text(form, "snkrdunkCode"),
   });
 
   if (!result.ok) return { error: result.error };

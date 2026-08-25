@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/snkrdunk-prices",
+      "schedule": "0 3 * * *"
+    }
+  ]
+}
