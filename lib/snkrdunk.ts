@@ -1,18 +1,18 @@
 /**
  * ดึงราคาต่ำสุดปัจจุบันจาก SNKRDUNK ผ่าน endpoint สาธารณะของเขา ไม่ต้องล็อกอิน
  *
- * รหัสสินค้าที่แอดมินกรอกไว้เป็นแค่ตัวเลขท้าย URL หน้าสินค้า (เช่น 864495)
- * แต่ตัว API ต้องการรูป "SW---864495" จึงเติมคำนำหน้าให้ตรงนี้ที่เดียว
- * ไม่ให้ผู้ใช้ต้องจำหรือพิมพ์คำนำหน้าเอง
+ * ใช้ /v1/trading-cards/{id}/min-prices-by-conditions (ตัวเดียวกับที่หน้าสินค้าจริงใช้
+ * แสดงราคาใต้ปุ่มเลือกสภาพ) ไม่ใช่ /v1/products/summaries ที่เคยลองก่อนหน้านี้ —
+ * ตัวนั้นคืนราคาที่ไม่ตรงกับหน้าเว็บจริง (ค้าง/ผิดไปจากราคาจริงได้) endpoint นี้
+ * ตรวจสอบแล้วว่าตัวเลขตรงกับที่หน้าเว็บโชว์เป๊ะ แม้ยิงจากเซิร์ฟเวอร์โดยไม่มี
+ * session ของเบราว์เซอร์เลยก็ตาม
  */
 
-const SNKRDUNK_SUMMARIES_URL = "https://snkrdunk.com/en/v1/products/summaries";
-const CODE_PREFIX = "SW---";
 const TRADING_CARD_URL_PATTERN = /trading-cards\/(\d+)/;
 
 /**
  * แกะเลขสินค้าออกจากสิ่งที่แอดมินวางมา — จะพิมพ์แค่ตัวเลข หรือวาง URL เต็ม ๆ
- * ของหน้าสินค้า (เช่น https://snkrdunk.com/en/trading-cards/864495) ก็ใช้ได้ทั้งคู่
+ * ของหน้าสินค้า (เช่น https://snkrdunk.com/en/trading-cards/104428) ก็ใช้ได้ทั้งคู่
  * คืน null ถ้าแกะไม่ออก (ไม่ใช่ตัวเลขล้วนและไม่ใช่ลิงก์หน้าสินค้า)
  */
 export function extractSnkrdunkCode(input: string): string | null {
@@ -22,71 +22,61 @@ export function extractSnkrdunkCode(input: string): string | null {
   return trimmed.match(TRADING_CARD_URL_PATTERN)?.[1] ?? null;
 }
 
-/** จำนวนรหัสต่อคำขอหนึ่งครั้ง — กันไม่ให้ query string ยาวเกินไปและลดความเสี่ยงโดนจำกัดอัตรา */
-const BATCH_SIZE = 25;
-
-interface ProductSummary {
-  code?: string;
-  minPrice?: number | null;
+function minPricesUrl(productId: string): string {
+  return `https://snkrdunk.com/en/v1/trading-cards/${encodeURIComponent(productId)}/min-prices-by-conditions`;
 }
 
-interface ProductSummariesResponse {
-  productSummaries?: ProductSummary[];
+interface ConditionPrice {
+  minPrice?: number;
+}
+
+interface MinPricesResponse {
+  conditionPrices?: ConditionPrice[];
 }
 
 export interface SnkrdunkFetchResult {
-  /** productId (ตัวเลขที่แอดมินกรอก) → ราคาต่ำสุดปัจจุบัน (บาท) */
+  /** productId (ตัวเลขที่แอดมินกรอก) → ราคาต่ำสุดปัจจุบันข้ามทุกสภาพ (บาท) — เท่ากับแท็บ "All" บนหน้าเว็บ */
   prices: Map<string, number>;
   /** productId ที่ยิงไปแล้วไม่ได้ราคากลับมา (ไม่พบสินค้า/หมดสต็อก/คำขอล้มเหลว) */
   missing: string[];
 }
 
-function chunk<T>(items: T[], size: number): T[][] {
-  const chunks: T[][] = [];
-  for (let i = 0; i < items.length; i += size) chunks.push(items.slice(i, i + size));
-  return chunks;
-}
-
-/** productIds คือตัวเลขล้วน ๆ ตามที่เก็บใน card.snkrdunkCode */
+/**
+ * เอ็นด์พอยต์นี้รับได้ทีละสินค้าเท่านั้น ไม่มีแบบยิงหลายรายการพร้อมกันในคำขอเดียว
+ * จึงยิงพร้อมกันแบบขนานแทน — จำนวนการ์ดที่ผูกไว้จริงไม่น่าเยอะจนเป็นปัญหา
+ */
 export async function fetchSnkrdunkLowestPrices(productIds: string[]): Promise<SnkrdunkFetchResult> {
   const prices = new Map<string, number>();
   const missing: string[] = [];
   const uniqueIds = [...new Set(productIds.map((id) => id.trim()).filter(Boolean))];
 
-  for (const batch of chunk(uniqueIds, BATCH_SIZE)) {
-    const params = new URLSearchParams();
-    for (const id of batch) params.append("identifiers", `${CODE_PREFIX}${id}`);
-
-    try {
-      const res = await fetch(`${SNKRDUNK_SUMMARIES_URL}?${params.toString()}`, {
-        headers: { accept: "application/json" },
-        cache: "no-store",
-      });
-
-      if (!res.ok) {
-        missing.push(...batch);
-        continue;
-      }
-
-      const data = (await res.json()) as ProductSummariesResponse;
-      const found = new Set<string>();
-
-      for (const item of data.productSummaries ?? []) {
-        if (!item.code?.startsWith(CODE_PREFIX)) continue;
-        const productId = item.code.slice(CODE_PREFIX.length);
-        if (typeof item.minPrice === "number" && item.minPrice > 0) {
-          prices.set(productId, item.minPrice);
-          found.add(productId);
+  await Promise.all(
+    uniqueIds.map(async (id) => {
+      try {
+        const res = await fetch(minPricesUrl(id), {
+          headers: { accept: "application/json" },
+          cache: "no-store",
+        });
+        if (!res.ok) {
+          missing.push(id);
+          return;
         }
-      }
 
-      for (const id of batch) {
-        if (!found.has(id)) missing.push(id);
+        const data = (await res.json()) as MinPricesResponse;
+        const values = (data.conditionPrices ?? [])
+          .map((c) => c.minPrice)
+          .filter((p): p is number => typeof p === "number" && p > 0);
+
+        if (values.length === 0) {
+          missing.push(id);
+          return;
+        }
+        prices.set(id, Math.min(...values));
+      } catch {
+        missing.push(id);
       }
-    } catch {
-      missing.push(...batch);
-    }
-  }
+    }),
+  );
 
   return { prices, missing };
 }
