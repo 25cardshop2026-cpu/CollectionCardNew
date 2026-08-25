@@ -6,20 +6,30 @@ import { fetchSnkrdunkPrices } from "@/lib/snkrdunk";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
+/** จำกัดจำนวนต่อคำขอ กันฟังก์ชันหมดเวลาเมื่อแคตตาล็อกโตเกิน 60 วิที่ทำไหว */
+const DEFAULT_LIMIT = 60;
+const MAX_LIMIT = 200;
+
 interface SyncSummary {
   checked: number;
+  remaining: number;
   updated: number;
   missing: string[];
   errors: string[];
 }
 
-async function runSync(): Promise<SyncSummary> {
+async function runSync(limit: number): Promise<SyncSummary> {
   await loadState();
-  const targets = listSnkrdunkSyncTargets();
+  const allTargets = listSnkrdunkSyncTargets();
 
-  if (targets.length === 0) {
-    return { checked: 0, updated: 0, missing: [], errors: [] };
+  if (allTargets.length === 0) {
+    return { checked: 0, remaining: 0, updated: 0, missing: [], errors: [] };
   }
+
+  // เรียงจากเก่าสุด/ไม่เคยซิงก์มาก่อนแล้วอยู่แล้ว (ดู listSnkrdunkSyncTargets)
+  // ตัดมาแค่ล็อตเดียวต่อคำขอ ที่เหลือรอคิวรอบถัดไป — ทั้งปุ่มกดเองที่เรียกซ้ำ
+  // เป็นล็อป และ cron รายวันที่ค่อย ๆ ไล่ทัน จะคืบหน้าไปเรื่อย ๆ ไม่มีวันตกหล่น
+  const targets = allTargets.slice(0, limit);
 
   const { nm, psa10, missing } = await fetchSnkrdunkPrices(targets.map((t) => t.snkrdunkCode));
 
@@ -44,7 +54,19 @@ async function runSync(): Promise<SyncSummary> {
 
   if (updated > 0) revalidatePath("/", "layout");
 
-  return { checked: targets.length, updated, missing, errors };
+  return {
+    checked: targets.length,
+    remaining: Math.max(0, allTargets.length - targets.length),
+    updated,
+    missing,
+    errors,
+  };
+}
+
+function parseLimit(url: string): number {
+  const raw = Number(new URL(url).searchParams.get("limit"));
+  if (!Number.isFinite(raw) || raw <= 0) return DEFAULT_LIMIT;
+  return Math.min(raw, MAX_LIMIT);
 }
 
 /**
@@ -64,11 +86,11 @@ export async function GET(request: Request) {
     );
   }
 
-  return NextResponse.json(await runSync());
+  return NextResponse.json(await runSync(parseLimit(request.url)));
 }
 
 /** ปุ่ม "ซิงก์ตอนนี้" ในแดชบอร์ด — ไม่ต้องมี secret เหมือนหน้าแอดมินส่วนอื่นตอนนี้ */
-export async function POST() {
+export async function POST(request: Request) {
   if (!canPersist()) {
     return NextResponse.json(
       { error: "บันทึกไม่ได้ในสภาพแวดล้อมนี้ เพราะที่เก็บข้อมูลเขียนไม่ได้" },
@@ -76,5 +98,5 @@ export async function POST() {
     );
   }
 
-  return NextResponse.json(await runSync());
+  return NextResponse.json(await runSync(parseLimit(request.url)));
 }

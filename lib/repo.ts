@@ -568,15 +568,19 @@ export interface SnkrdunkSyncTarget {
  * นี่คือรายการที่ job ซิงก์ราคาอัตโนมัติจะไปดึงราคามาอัปเดตให้
  */
 export function listSnkrdunkSyncTargets(): SnkrdunkSyncTarget[] {
-  const targets: SnkrdunkSyncTarget[] = [];
+  const targets: (SnkrdunkSyncTarget & { updatedAt: string })[] = [];
   for (const card of snap().cards) {
     const snkrdunkCode = card.snkrdunkCode?.trim();
     if (!snkrdunkCode) continue;
     const variant = getVariants(card.id)[0];
     if (!variant) continue;
-    targets.push({ card, variantId: variant.id, snkrdunkCode });
+    // ไม่เคยซิงก์เลย = เก่าสุด (ต้องได้คิวก่อน) แทนด้วยค่าว่างซึ่งเรียงมาก่อนวันที่จริงเสมอ
+    const updatedAt = getChannelPrice(variant.id, "NM", "snkrdunk")?.updatedAt ?? "";
+    targets.push({ card, variantId: variant.id, snkrdunkCode, updatedAt });
   }
-  return targets;
+  // ใบที่ไม่เคยซิงก์หรือซิงก์มานานสุดได้คิวก่อนเสมอ — ให้ทุกครั้งที่เรียก
+  // (ปุ่มกดเอง หรือ cron รายวัน) คืบหน้าไปเรื่อย ๆ แม้ทำทั้งหมดในครั้งเดียวไม่ไหว
+  return targets.sort((a, b) => a.updatedAt.localeCompare(b.updatedAt));
 }
 
 export interface AdminStats {
