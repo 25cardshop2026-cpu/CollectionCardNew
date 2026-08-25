@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 interface RankingProduct {
   productType?: string;
   productTypeGB?: string;
-  code?: string;
+  productCode?: string;
   name?: string;
   link?: string;
   thumbnailUrl?: string;
@@ -36,12 +36,14 @@ export async function GET(request: Request) {
 
     const data = (await res.json()) as SearchResponse;
     const results = (data.search?.rankingProducts ?? [])
-      .filter((p) => p.productTypeGB === "tradingCardSingle" && p.code?.startsWith(CODE_PREFIX))
+      .filter(
+        (p) => p.productTypeGB === "tradingCardSingle" && p.productCode?.startsWith(CODE_PREFIX),
+      )
       .map((p) => ({
-        productId: p.code!.slice(CODE_PREFIX.length),
+        productId: p.productCode!.slice(CODE_PREFIX.length),
         name: p.name ?? "",
         thumbnailUrl: p.thumbnailUrl ?? "",
-        link: `https://snkrdunk.com/en/trading-cards/${p.code!.slice(CODE_PREFIX.length)}`,
+        link: `https://snkrdunk.com/en/trading-cards/${p.productCode!.slice(CODE_PREFIX.length)}`,
       }));
 
     return NextResponse.json({ results });
