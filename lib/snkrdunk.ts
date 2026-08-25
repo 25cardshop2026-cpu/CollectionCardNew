@@ -22,8 +22,14 @@ export function extractSnkrdunkCode(input: string): string | null {
   return trimmed.match(TRADING_CARD_URL_PATTERN)?.[1] ?? null;
 }
 
+/**
+ * ต้องระบุ currency=THB&country=TH ตรง ๆ เสมอ ห้ามพึ่งการเดาประเทศจาก IP
+ * เพราะเซิร์ฟเวอร์ที่ยิงคำขอ (Vercel) ไม่ได้อยู่ในไทย เคยเจอมาแล้วว่าไม่ใส่พารามิเตอร์
+ * นี้แล้วได้ราคากลับมาเป็นสกุลอื่นปนกัน (ตัวเลขเพี้ยนไปจากราคาจริงบนเว็บมาก)
+ */
 function minPricesUrl(productId: string): string {
-  return `https://snkrdunk.com/en/v1/trading-cards/${encodeURIComponent(productId)}/min-prices-by-conditions`;
+  const params = new URLSearchParams({ currency: "THB", country: "TH" });
+  return `https://snkrdunk.com/en/v1/trading-cards/${encodeURIComponent(productId)}/min-prices-by-conditions?${params.toString()}`;
 }
 
 interface ConditionPrice {
