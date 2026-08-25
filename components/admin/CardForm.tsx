@@ -107,7 +107,11 @@ export function CardForm({
 
       {isEdit && (
         <>
-          <SnkrdunkSearchPicker defaultQuery={`${card?.nameEn ?? ""} ${card?.number ?? ""}`.trim()} />
+          <SnkrdunkSearchPicker
+            cardId={card!.id}
+            defaultQuery={`${card?.nameEn ?? ""} ${card?.number ?? ""}`.trim()}
+            hasImage={Boolean(card?.imageUrl)}
+          />
           <Field
             id="snkrdunkCode-field"
             label="เลขสินค้า SNKRDUNK"

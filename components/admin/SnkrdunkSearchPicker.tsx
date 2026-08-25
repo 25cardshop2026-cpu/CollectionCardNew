@@ -17,11 +17,20 @@ interface SearchResult {
  * แต่ยังต้องให้คนดูรูป+ชื่อแล้วเลือกเอง เพราะการ์ดชื่อเดียวกันมีหลายรุ่นพิมพ์
  * ให้เดาเองอัตโนมัติเสี่ยงจับผิดใบ (เจอมาแล้วจริง ๆ)
  */
-export function SnkrdunkSearchPicker({ defaultQuery }: { defaultQuery: string }) {
+export function SnkrdunkSearchPicker({
+  cardId,
+  defaultQuery,
+  hasImage,
+}: {
+  cardId: string;
+  defaultQuery: string;
+  hasImage: boolean;
+}) {
   const [query, setQuery] = useState(defaultQuery);
   const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [picked, setPicked] = useState<string | null>(null);
+  const [imageNote, setImageNote] = useState<string | null>(null);
 
   async function search() {
     if (!query.trim()) return;
@@ -45,6 +54,22 @@ export function SnkrdunkSearchPicker({ defaultQuery }: { defaultQuery: string })
     if (sourceUrlInput) sourceUrlInput.value = result.link;
     if (codeInput) codeInput.value = result.productId;
     setPicked(result.productId);
+    setImageNote(null);
+
+    // เติมรูปให้เฉพาะใบที่ยังไม่มีรูปเลย — ไม่ทับรูปที่แอดมินอัปโหลดเองไว้แล้ว
+    if (!hasImage && result.thumbnailUrl) {
+      fetch("/api/card-image-from-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cardId, imageUrl: result.thumbnailUrl }),
+      })
+        .then((res) => res.json())
+        .then((data: { imageUrl?: string; skipped?: boolean; error?: string }) => {
+          if (data.imageUrl) setImageNote("เติมรูปให้แล้ว รีเฟรชหน้าจะเห็น");
+          else if (!data.skipped) setImageNote("ดึงรูปไม่สำเร็จ อัปโหลดเองได้ที่ด้านบน");
+        })
+        .catch(() => setImageNote("ดึงรูปไม่สำเร็จ อัปโหลดเองได้ที่ด้านบน"));
+    }
   }
 
   return (
@@ -110,6 +135,8 @@ export function SnkrdunkSearchPicker({ defaultQuery }: { defaultQuery: string })
           ))}
         </div>
       )}
+
+      {imageNote && <span className="text-[12px] text-ink-3">{imageNote}</span>}
     </div>
   );
 }

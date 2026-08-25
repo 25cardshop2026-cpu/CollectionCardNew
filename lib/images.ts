@@ -49,6 +49,30 @@ function servedUrl(cardId: string, version: string): string {
   return `/api/card-image/${encodeURIComponent(cardId)}?v=${version.replace(/[^a-zA-Z0-9]/g, "").slice(0, 12)}`;
 }
 
+/**
+ * ดึงรูปจาก URL ภายนอก (เช่น thumbnail จาก SNKRDUNK) มาอัปโหลดเข้าที่เก็บเราเอง
+ * แทนที่จะลิงก์ตรงไปเว็บนอก — ใช้ท่อเดียวกับตอนแอดมินอัปโหลดมือทุกประการ
+ * (ตรวจชนิด/ขนาดไฟล์ซ้ำเหมือนกัน) คืน null ถ้าดึงไม่ได้หรือไฟล์ไม่ผ่านตรวจ
+ */
+export async function saveCardImageFromUrl(cardId: string, imageUrl: string): Promise<string | null> {
+  let res: Response;
+  try {
+    res = await fetch(imageUrl);
+  } catch {
+    return null;
+  }
+  if (!res.ok) return null;
+
+  const contentType = res.headers.get("content-type") ?? "image/webp";
+  const buffer = await res.arrayBuffer();
+  const file = new File([buffer], "image", { type: contentType });
+
+  const check = checkImage(file);
+  if (!check.ok) return null;
+
+  return saveCardImage(cardId, file);
+}
+
 /** อัปโหลดรูปแล้วคืน URL ที่เอาไปเก็บในข้อมูลการ์ดได้เลย */
 export async function saveCardImage(cardId: string, file: File): Promise<string | null> {
   const client = db();
