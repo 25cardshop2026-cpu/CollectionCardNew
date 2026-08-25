@@ -1,12 +1,18 @@
 import { NextResponse } from "next/server";
-import { fetchSnkrdunkLowestPrices } from "@/lib/snkrdunk";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const result = await fetchSnkrdunkLowestPrices(["142584", "104428"]);
+  const url =
+    "https://snkrdunk.com/en/v1/trading-cards/142584/min-prices-by-conditions?currency=THB&country=TH";
+  const res = await fetch(url, {
+    headers: { accept: "application/json" },
+    cache: "no-store",
+  });
+  const text = await res.text();
   return NextResponse.json({
-    prices: Object.fromEntries(result.prices),
-    missing: result.missing,
+    status: res.status,
+    headers: Object.fromEntries(res.headers.entries()),
+    body: text,
   });
 }
