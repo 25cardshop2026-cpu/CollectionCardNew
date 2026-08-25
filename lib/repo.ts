@@ -455,8 +455,10 @@ export function getChannelPrice(
   condition: Condition,
   source: PriceSource,
 ): PriceCurrent | null {
+  // ราคาช่องทางอื่นเก็บตามสภาพที่สังเกตจริงแยกกันไว้แล้ว (ดู setPrice) จึงกรอง
+  // ด้วยสภาพตรง ๆ ไม่ต้องคำนวณผ่านเบี้ยสังเคราะห์เหมือนราคาตลาดหลัก
   const recorded = (snap().recordedByVariant.get(variantId) ?? []).filter(
-    (p) => p.source === source,
+    (p) => p.source === source && p.condition === condition,
   );
   if (recorded.length === 0) return null;
 
@@ -465,15 +467,11 @@ export function getChannelPrice(
   const earlier = recorded.filter((p) => new Date(p.recordedAt).getTime() <= cutoff);
   const before = earlier.length > 0 ? earlier[earlier.length - 1].priceThb : null;
 
-  const nm = latest.priceThb;
   return {
     variantId,
     condition,
-    priceThb:
-      condition === "PSA10"
-        ? nmToPsa10(nm, variantId)
-        : Math.round(nm * CONDITION_MULTIPLIER[condition]),
-    change7d: before && before > 0 ? Math.round(((nm - before) / before) * 1000) / 10 : null,
+    priceThb: latest.priceThb,
+    change7d: before && before > 0 ? Math.round(((latest.priceThb - before) / before) * 1000) / 10 : null,
     updatedAt: latest.recordedAt,
   };
 }
@@ -520,6 +518,8 @@ export interface AdminPriceSet {
   psa10: number | null;
   ebay: number | null;
   snkrdunk: number | null;
+  /** ราคาเกรด PSA 10 ต่ำสุดที่สังเกตจาก SNKRDUNK จริง — คนละก้อนกับ psa10 สังเคราะห์จาก NM */
+  snkrdunkPsa10: number | null;
 }
 
 export function getAdminPrices(variantId: string): AdminPriceSet {
@@ -528,6 +528,7 @@ export function getAdminPrices(variantId: string): AdminPriceSet {
     psa10: currentPrice(variantId, "PSA10")?.priceThb ?? null,
     ebay: getChannelPrice(variantId, "NM", "ebay")?.priceThb ?? null,
     snkrdunk: getChannelPrice(variantId, "NM", "snkrdunk")?.priceThb ?? null,
+    snkrdunkPsa10: getChannelPrice(variantId, "PSA10", "snkrdunk")?.priceThb ?? null,
   };
 }
 
@@ -641,9 +642,18 @@ export async function setPrice(
     return { ok: false, error: "ราคาต้องเป็นตัวเลขมากกว่า 0" };
   }
 
-  // ราคาที่กรอกอิงสภาพใดก็ได้ แต่เก็บเป็นฐาน NM เพื่อให้เทียบกันได้ทั้งระบบ
-  const nmEquivalent =
-    condition === "PSA10"
+  /*
+    ราคาตลาดหลัก (market) อิงสภาพใดก็ได้ แต่เก็บเป็นฐาน NM เพื่อให้เทียบกันได้
+    ทั้งระบบ — NM กับ PSA10 จึงเป็นคู่เดียวกันคำนวณกลับไปมาผ่านเบี้ยสังเคราะห์
+
+    ราคาจากช่องทางอื่น (eBay/SNKRDUNK) ไม่ผ่านการแปลงนี้เลย เพราะเป็นตัวเลขจริง
+    ที่สังเกตมาตรง ๆ ต่อสภาพนั้น ๆ — เอาไปแปลงกลับไปกลับมาด้วยเบี้ยสังเคราะห์ของ
+    เราเองจะได้ตัวเลขที่ไม่ใช่ราคาจริงอีกต่อไป จึงเก็บแยกตามสภาพที่สังเกตจริง
+  */
+  const isChannel = source !== "market";
+  const nmEquivalent = isChannel
+    ? priceThb
+    : condition === "PSA10"
       ? psa10ToNm(priceThb, variantId)
       : Math.round(priceThb / CONDITION_MULTIPLIER[condition]);
 
@@ -653,7 +663,7 @@ export async function setPrice(
     return {
       ok: false,
       error:
-        condition === "PSA10"
+        condition === "PSA10" && !isChannel
           ? `ราคา PSA 10 ต้องมากกว่าค่าส่งเกรด ฿${GRADING_COST_THB.toLocaleString("th-TH")} เพราะไม่มีใครขายใบที่ส่งเกรดแล้วถูกกว่าต้นทุน`
           : "ราคาต่ำเกินไปจนแปลงกลับเป็นราคาสภาพ NM ไม่ได้",
     };
@@ -663,7 +673,7 @@ export async function setPrice(
     await catalogStore.addPricePoints([
       {
         variantId,
-        condition: "NM",
+        condition: isChannel ? condition : "NM",
         priceThb: nmEquivalent,
         recordedAt: new Date().toISOString(),
         source,

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { canPersist, listSnkrdunkSyncTargets, loadState, setPrice } from "@/lib/repo";
-import { fetchSnkrdunkLowestPrices } from "@/lib/snkrdunk";
+import { fetchSnkrdunkPrices } from "@/lib/snkrdunk";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -21,20 +21,25 @@ async function runSync(): Promise<SyncSummary> {
     return { checked: 0, updated: 0, missing: [], errors: [] };
   }
 
-  const { prices, missing } = await fetchSnkrdunkLowestPrices(
-    targets.map((t) => t.snkrdunkCode),
-  );
+  const { nm, psa10, missing } = await fetchSnkrdunkPrices(targets.map((t) => t.snkrdunkCode));
 
   let updated = 0;
   const errors: string[] = [];
 
   for (const target of targets) {
-    const priceThb = prices.get(target.snkrdunkCode);
-    if (priceThb === undefined) continue;
+    const nmPrice = nm.get(target.snkrdunkCode);
+    if (nmPrice !== undefined) {
+      const result = await setPrice(target.variantId, "NM", nmPrice, "snkrdunk");
+      if (result.ok) updated++;
+      else errors.push(`${target.card.number} (${target.snkrdunkCode}) NM: ${result.error}`);
+    }
 
-    const result = await setPrice(target.variantId, "NM", priceThb, "snkrdunk");
-    if (result.ok) updated++;
-    else errors.push(`${target.card.number} (${target.snkrdunkCode}): ${result.error}`);
+    const psa10Price = psa10.get(target.snkrdunkCode);
+    if (psa10Price !== undefined) {
+      const result = await setPrice(target.variantId, "PSA10", psa10Price, "snkrdunk");
+      if (result.ok) updated++;
+      else errors.push(`${target.card.number} (${target.snkrdunkCode}) PSA10: ${result.error}`);
+    }
   }
 
   if (updated > 0) revalidatePath("/", "layout");

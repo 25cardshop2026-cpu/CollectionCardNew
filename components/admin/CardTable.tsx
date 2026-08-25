@@ -16,8 +16,8 @@ import { TIER_SURFACE, rarityTier } from "@/lib/rarity";
  * เพราะการกรอกราคาทั้งชุดคือการไล่ทีละช่อง ไม่ใช่การกรอกฟอร์มแล้วส่งทีเดียว
  */
 
-/** ช่องราคาสี่ช่องที่กรอกได้ เรียงตามลำดับคอลัมน์ในตาราง */
-const PRICE_FIELDS = ["nm", "psa10", "ebay", "snkrdunk"] as const;
+/** ช่องราคาที่กรอกได้ เรียงตามลำดับคอลัมน์ในตาราง */
+const PRICE_FIELDS = ["nm", "psa10", "ebay", "snkrdunk", "snkrdunkPsa10"] as const;
 
 type PriceField = (typeof PRICE_FIELDS)[number];
 
@@ -26,6 +26,7 @@ const FIELD_LABEL: Record<PriceField, string> = {
   psa10: "PSA 10",
   ebay: "eBay",
   snkrdunk: "SNKRDUNK",
+  snkrdunkPsa10: "SNKRDUNK PSA10",
 };
 
 /** ช่องกรอกแต่ละช่องหมายถึงเกรดไหนของช่องทางไหน — ใช้ตอนยิงไป /api/prices */
@@ -34,6 +35,7 @@ const FIELD_SOURCE: Record<PriceField, { condition: "NM" | "PSA10"; source: stri
   psa10: { condition: "PSA10", source: "market" },
   ebay: { condition: "NM", source: "ebay" },
   snkrdunk: { condition: "NM", source: "snkrdunk" },
+  snkrdunkPsa10: { condition: "PSA10", source: "snkrdunk" },
 };
 
 export interface CardTableRow {
