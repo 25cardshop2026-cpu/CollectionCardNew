@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import { CheckboxGroup, Field, FormError, SelectField, SubmitButton } from "./Form";
+import { SnkrdunkSearchPicker } from "./SnkrdunkSearchPicker";
 import { createCardAction, updateCardAction, type FormState } from "@/lib/actions";
 import type { Card, CardSet, VariantType } from "@/lib/types";
 import { VARIANT_LABEL } from "@/lib/types";
@@ -95,6 +96,7 @@ export function CardForm({
       </div>
 
       <Field
+        id="sourceUrl-field"
         label="ลิงก์ต้นทางราคา"
         name="sourceUrl"
         type="url"
@@ -104,13 +106,17 @@ export function CardForm({
       />
 
       {isEdit && (
-        <Field
-          label="เลขสินค้า SNKRDUNK"
-          name="snkrdunkCode"
-          defaultValue={card?.snkrdunkCode}
-          placeholder="864495 หรือวางลิงก์เต็ม ๆ ก็ได้"
-          hint="วางเป็นตัวเลขล้วน หรือ URL เต็ม ๆ ของหน้าสินค้า (เช่น .../trading-cards/864495) ก็ได้ ระบบแกะเลขให้เอง — ใส่แล้วช่อง SNKRDUNK จะได้ราคาต่ำสุดปัจจุบันอัปเดตอัตโนมัติตามรอบ เว้นว่าง = ไม่ซิงก์ใบนี้ ปกติไม่ต้องกรอกช่องนี้เองถ้าลิงก์ต้นทางด้านบนเป็นลิงก์ SNKRDUNK อยู่แล้ว"
-        />
+        <>
+          <SnkrdunkSearchPicker defaultQuery={`${card?.nameEn ?? ""} ${card?.number ?? ""}`.trim()} />
+          <Field
+            id="snkrdunkCode-field"
+            label="เลขสินค้า SNKRDUNK"
+            name="snkrdunkCode"
+            defaultValue={card?.snkrdunkCode}
+            placeholder="864495 หรือวางลิงก์เต็ม ๆ ก็ได้"
+            hint="วางเป็นตัวเลขล้วน หรือ URL เต็ม ๆ ของหน้าสินค้า (เช่น .../trading-cards/864495) ก็ได้ ระบบแกะเลขให้เอง — ใส่แล้วช่อง SNKRDUNK จะได้ราคาต่ำสุดปัจจุบันอัปเดตอัตโนมัติตามรอบ เว้นว่าง = ไม่ซิงก์ใบนี้ หรือจะใช้ช่องค้นหาด้านบนแล้วกดเลือกผลลัพธ์แทนก็ได้"
+          />
+        </>
       )}
 
       {!isEdit && (
