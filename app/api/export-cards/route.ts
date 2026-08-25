@@ -15,6 +15,7 @@ export async function GET() {
       nameTh: card.nameTh,
       variantType: card.variantType,
       snkrdunkCode: card.snkrdunkCode ?? null,
+      hasImage: Boolean(card.imageUrl),
     })),
   );
   return NextResponse.json({ sets, rows });
