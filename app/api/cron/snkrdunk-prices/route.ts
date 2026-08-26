@@ -51,11 +51,13 @@ async function runSync(limit: number): Promise<SyncSummary> {
       if (result.ok) updated++;
       else errors.push(`${target.card.number} (${target.snkrdunkCode}) PSA10: ${result.error}`);
     }
-
-    // ปักว่าลองแล้ว ไม่ว่าจะได้ราคากลับมาหรือไม่ก็ตาม — กันใบที่ไม่มีคนลงขาย
-    // ค้างหัวคิวตลอดไปจนใบอื่นไม่ได้คิวสักที (ดูเหตุผลเต็มใน listSnkrdunkSyncTargets)
-    await markSnkrdunkChecked(target.card.id, checkedAt);
   }
+
+  // ปักว่าลองแล้วทั้งล็อตในคำขอเดียว ไม่ว่าจะได้ราคากลับมาหรือไม่ก็ตาม — กันใบที่
+  // ไม่มีคนลงขายค้างหัวคิวตลอดไปจนใบอื่นไม่ได้คิวสักที (ดูเหตุผลเต็มใน
+  // listSnkrdunkSyncTargets) ทำทีเดียวทั้งล็อตแทนที่จะวนทีละใบ ไม่งั้นแคตตาล็อก
+  // ทั้งก้อนโดนโหลดใหม่ต่อใบจนงานล็อตใหญ่ช้าจนหมดเวลาฟังก์ชัน
+  await markSnkrdunkChecked(targets.map((t) => t.card.id), checkedAt);
 
   if (updated > 0) revalidatePath("/", "layout");
 

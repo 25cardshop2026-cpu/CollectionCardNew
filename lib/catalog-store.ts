@@ -41,6 +41,9 @@ export interface CatalogStore {
   removeSet(code: string): Promise<WriteResult>;
   addCards(cards: Card[], variants: Variant[], points: PricePoint[]): Promise<WriteResult>;
   editCard(id: string, patch: Partial<Card>): Promise<WriteResult>;
+  /** เหมือน editCard แต่ทำหลายใบในคำขอเดียว — ใช้ตอนซิงก์ราคาเป็นล็อต กัน
+   * โหลดแคตตาล็อกทั้งก้อนใหม่ซ้ำต่อใบจนงานล็อตใหญ่ช้าจนหมดเวลา */
+  markCardsChecked(cardIds: string[], checkedAt: string): Promise<WriteResult>;
   removeCard(id: string): Promise<WriteResult>;
 }
 
@@ -96,6 +99,13 @@ const documentStore: CatalogStore = {
 
   editCard: (id, patch) =>
     commitDocument((draft) => void (draft.cardEdits[id] = { ...draft.cardEdits[id], ...patch })),
+
+  markCardsChecked: (cardIds, checkedAt) =>
+    commitDocument((draft) => {
+      for (const id of cardIds) {
+        draft.cardEdits[id] = { ...draft.cardEdits[id], snkrdunkCheckedAt: checkedAt };
+      }
+    }),
 
   removeCard: (id) =>
     commitDocument((draft) => {
@@ -426,6 +436,27 @@ const supabaseStore: CatalogStore = {
           .from("card_edits")
           .upsert({ card_id: id, patch: merged, updated_at: new Date().toISOString() }),
       );
+    }),
+
+  markCardsChecked: (cardIds, checkedAt) =>
+    commitSupabase(async () => {
+      if (cardIds.length === 0) return;
+      const client = db()!;
+      // ต้องอ่าน patch เดิมของทุกใบมารวมก่อนเหมือน editCard — แต่ทำครั้งเดียว
+      // ทั้งล็อตแทนที่จะวนอ่าน-เขียนทีละใบ (ซึ่งทำให้แคตตาล็อกทั้งก้อนโดนโหลด
+      // ใหม่ต่อใบจนงานล็อตใหญ่ช้าจนหมดเวลาฟังก์ชัน)
+      const existing = await selectAll<{ card_id: string; patch: Partial<Card> }>((from, to) =>
+        client.from("card_edits").select("card_id, patch").in("card_id", cardIds).range(from, to),
+      );
+      check(existing);
+
+      const existingByCardId = new Map(existing.data.map((row) => [row.card_id, row.patch ?? {}]));
+      const rows = cardIds.map((id) => ({
+        card_id: id,
+        patch: { ...existingByCardId.get(id), snkrdunkCheckedAt: checkedAt },
+        updated_at: new Date().toISOString(),
+      }));
+      check(await client.from("card_edits").upsert(rows));
     }),
 
   removeCard: (id) =>

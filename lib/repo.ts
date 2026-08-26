@@ -586,11 +586,13 @@ export function listSnkrdunkSyncTargets(): SnkrdunkSyncTarget[] {
   return targets.sort((a, b) => a.checkedAt.localeCompare(b.checkedAt));
 }
 
-/** ปักเวลาที่เพิ่งลองซิงก์ราคาให้การ์ดใบนี้ ไม่ว่าจะได้ราคากลับมาหรือไม่ก็ตาม
- * ใช้จัดคิว listSnkrdunkSyncTargets เท่านั้น ไม่ใช่ราคา จึงไม่ต้องเก็บประวัติ */
-export async function markSnkrdunkChecked(cardId: string, checkedAt: string): Promise<void> {
-  const ok = applied(await catalogStore.editCard(cardId, { snkrdunkCheckedAt: checkedAt }));
-  if (!ok) console.error(`markSnkrdunkChecked ล้มเหลว: ${cardId}`);
+/** ปักเวลาที่เพิ่งลองซิงก์ราคาให้การ์ดกลุ่มนี้ ไม่ว่าจะได้ราคากลับมาหรือไม่ก็ตาม
+ * ใช้จัดคิว listSnkrdunkSyncTargets เท่านั้น ไม่ใช่ราคา จึงไม่ต้องเก็บประวัติ —
+ * ทำทั้งล็อตในคำขอเดียว ไม่วนทีละใบ (ดูเหตุผลที่ markCardsChecked) */
+export async function markSnkrdunkChecked(cardIds: string[], checkedAt: string): Promise<void> {
+  if (cardIds.length === 0) return;
+  const ok = applied(await catalogStore.markCardsChecked(cardIds, checkedAt));
+  if (!ok) console.error(`markSnkrdunkChecked ล้มเหลว: ${cardIds.length} ใบ`);
 }
 
 export interface AdminStats {
