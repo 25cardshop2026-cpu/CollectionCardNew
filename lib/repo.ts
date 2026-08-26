@@ -589,7 +589,8 @@ export function listSnkrdunkSyncTargets(): SnkrdunkSyncTarget[] {
 /** ปักเวลาที่เพิ่งลองซิงก์ราคาให้การ์ดใบนี้ ไม่ว่าจะได้ราคากลับมาหรือไม่ก็ตาม
  * ใช้จัดคิว listSnkrdunkSyncTargets เท่านั้น ไม่ใช่ราคา จึงไม่ต้องเก็บประวัติ */
 export async function markSnkrdunkChecked(cardId: string, checkedAt: string): Promise<void> {
-  applied(await catalogStore.editCard(cardId, { snkrdunkCheckedAt: checkedAt }));
+  const ok = applied(await catalogStore.editCard(cardId, { snkrdunkCheckedAt: checkedAt }));
+  if (!ok) console.error(`markSnkrdunkChecked ล้มเหลว: ${cardId}`);
 }
 
 export interface AdminStats {

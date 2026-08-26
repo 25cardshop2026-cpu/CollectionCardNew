@@ -332,7 +332,8 @@ async function commitSupabase(work: () => Promise<unknown>): Promise<WriteResult
   try {
     await work();
     return await loadFromSupabase();
-  } catch {
+  } catch (err) {
+    console.error("commitSupabase ล้มเหลว:", err);
     return null;
   }
 }
