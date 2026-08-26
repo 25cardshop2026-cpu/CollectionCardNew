@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
-import { canPersist, listSnkrdunkSyncTargets, loadState, markSnkrdunkChecked, setPrice } from "@/lib/repo";
+import {
+  canPersist,
+  listSnkrdunkSyncTargets,
+  loadState,
+  markSnkrdunkChecked,
+  setChannelPricesBatch,
+  type ChannelPricePoint,
+} from "@/lib/repo";
 import { fetchSnkrdunkPrices } from "@/lib/snkrdunk";
 
 export const dynamic = "force-dynamic";
@@ -33,25 +40,26 @@ async function runSync(limit: number): Promise<SyncSummary> {
 
   const { nm, psa10, missing } = await fetchSnkrdunkPrices(targets.map((t) => t.snkrdunkCode));
 
-  let updated = 0;
   const errors: string[] = [];
   const checkedAt = new Date().toISOString();
 
+  // สร้างรายการราคาทั้งล็อตไว้ก่อน แล้วเขียนทีเดียวคำขอเดียว (ดูเหตุผลเต็มใน
+  // markCardsChecked ด้านล่าง — ห้ามวนเขียนทีละใบในลูป)
+  const points: ChannelPricePoint[] = [];
   for (const target of targets) {
     const nmPrice = nm.get(target.snkrdunkCode);
     if (nmPrice !== undefined) {
-      const result = await setPrice(target.variantId, "NM", nmPrice, "snkrdunk");
-      if (result.ok) updated++;
-      else errors.push(`${target.card.number} (${target.snkrdunkCode}) NM: ${result.error}`);
+      points.push({ variantId: target.variantId, condition: "NM", priceThb: nmPrice, source: "snkrdunk" });
     }
-
     const psa10Price = psa10.get(target.snkrdunkCode);
     if (psa10Price !== undefined) {
-      const result = await setPrice(target.variantId, "PSA10", psa10Price, "snkrdunk");
-      if (result.ok) updated++;
-      else errors.push(`${target.card.number} (${target.snkrdunkCode}) PSA10: ${result.error}`);
+      points.push({ variantId: target.variantId, condition: "PSA10", priceThb: psa10Price, source: "snkrdunk" });
     }
   }
+
+  const wrote = await setChannelPricesBatch(points);
+  if (!wrote) errors.push(`บันทึกราคาทั้งล็อต (${points.length} รายการ) ไม่สำเร็จ`);
+  const updated = wrote ? points.length : 0;
 
   // ปักว่าลองแล้วทั้งล็อตในคำขอเดียว ไม่ว่าจะได้ราคากลับมาหรือไม่ก็ตาม — กันใบที่
   // ไม่มีคนลงขายค้างหัวคิวตลอดไปจนใบอื่นไม่ได้คิวสักที (ดูเหตุผลเต็มใน

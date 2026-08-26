@@ -707,6 +707,32 @@ export async function setPrice(
   return saved ? { ok: true, value: saved } : { ok: false, error: NOT_WRITABLE };
 }
 
+export interface ChannelPricePoint {
+  variantId: string;
+  condition: Condition;
+  priceThb: number;
+  source: Exclude<PriceSource, "market">;
+}
+
+/** เหมือน setPrice หลายรายการ แต่เขียนทีเดียวในคำขอเดียว — ใช้ตอน sync ราคาช่อง
+ * ทางนอกเป็นล็อต (ดู markCardsChecked ว่าทำไม) ใช้ได้เฉพาะราคาช่องทางนอก (ไม่ใช่
+ * market) เพราะไม่ต้องแปลงผ่านเบี้ยสังเคราะห์เหมือนราคาตลาดหลัก บันทึกเป็นราคา
+ * ตามที่สังเกตจริงตรง ๆ */
+export async function setChannelPricesBatch(points: ChannelPricePoint[]): Promise<boolean> {
+  if (points.length === 0) return true;
+  return applied(
+    await catalogStore.addPricePoints(
+      points.map((p) => ({
+        variantId: p.variantId,
+        condition: p.condition,
+        priceThb: p.priceThb,
+        recordedAt: new Date().toISOString(),
+        source: p.source,
+      })),
+    ),
+  );
+}
+
 export interface NewSetInput {
   gameSlug: string;
   code: string;
