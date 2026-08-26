@@ -181,25 +181,60 @@ function toPriceRow(point: PricePoint) {
   };
 }
 
+/** PostgREST คืนมาสูงสุดแค่ 1,000 แถวต่อคำขอเสมอ (ตั้งค่า max-rows ของ Supabase
+ * เอง ไม่ใช่ limit ที่เราสั่ง) เงียบด้วย ไม่ error แค่ตัดที่เหลือทิ้ง — ตารางไหน
+ * โตเกิน 1,000 แถวจะเจอบั๊กแบบเขียนสำเร็จแต่อ่านไม่เห็นข้อมูลส่วนที่เกิน
+ * ต้องวนหน้าด้วย .range() เอง ต้องมี order() มาก่อนเสมอเพื่อให้ลำดับแถวคงที่
+ * ระหว่างวนหน้า ไม่งั้นมีสิทธิ์ข้ามหรือได้ซ้ำ */
+const PAGE_SIZE = 1000;
+
+async function selectAll<T>(
+  build: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: unknown }>,
+): Promise<{ data: T[]; error: unknown }> {
+  const all: T[] = [];
+  let from = 0;
+  for (;;) {
+    const { data, error } = await build(from, from + PAGE_SIZE - 1);
+    if (error) return { data: all, error };
+    const rows = data ?? [];
+    all.push(...rows);
+    if (rows.length < PAGE_SIZE) return { data: all, error: null };
+    from += PAGE_SIZE;
+  }
+}
+
 async function loadFromSupabase(): Promise<LoadedOverrides> {
   const client = db();
   if (!client) return { overrides: EMPTY_OVERRIDES, key: "empty" };
 
   try {
-    // ยิงพร้อมกันทั้งหมด เพราะไม่มีตารางไหนต้องรอผลของอีกตาราง
+    // ยิงพร้อมกันทั้งหมด เพราะไม่มีตารางไหนต้องรอผลของอีกตาราง — แต่ละตารางเอง
+    // วนหน้าเรื่อย ๆ ข้างในจนกว่าจะได้ครบ (ดู selectAll ด้านบน)
     const [sets, cards, variants, edits, deletedSets, deletedCards, featured, prices] =
       await Promise.all([
-        client.from("admin_sets").select("*"),
-        client.from("admin_cards").select("*"),
-        client.from("admin_variants").select("*"),
-        client.from("card_edits").select("card_id, patch, updated_at"),
-        client.from("deleted_sets").select("code"),
-        client.from("deleted_cards").select("card_id"),
-        client.from("featured_cards").select("card_id, position").order("position"),
-        client
-          .from("price_points")
-          .select("id, variant_id, condition, price_thb, source, recorded_at")
-          .order("recorded_at"),
+        selectAll((from, to) => client.from("admin_sets").select("*").order("code").range(from, to)),
+        selectAll((from, to) => client.from("admin_cards").select("*").order("id").range(from, to)),
+        selectAll((from, to) =>
+          client.from("admin_variants").select("*").order("id").range(from, to),
+        ),
+        selectAll((from, to) =>
+          client.from("card_edits").select("card_id, patch, updated_at").order("card_id").range(from, to),
+        ),
+        selectAll((from, to) => client.from("deleted_sets").select("code").order("code").range(from, to)),
+        selectAll((from, to) =>
+          client.from("deleted_cards").select("card_id").order("card_id").range(from, to),
+        ),
+        selectAll((from, to) =>
+          client.from("featured_cards").select("card_id, position").order("position").range(from, to),
+        ),
+        selectAll((from, to) =>
+          client
+            .from("price_points")
+            .select("id, variant_id, condition, price_thb, source, recorded_at")
+            .order("recorded_at")
+            .order("id")
+            .range(from, to),
+        ),
       ]);
 
     const failed = [sets, cards, variants, edits, deletedSets, deletedCards, featured, prices].find(
