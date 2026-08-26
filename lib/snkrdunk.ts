@@ -36,6 +36,28 @@ function minPricesUrl(productId: string): string {
   return `https://snkrdunk.com/en/v1/trading-cards/${encodeURIComponent(productId)}/min-prices-by-conditions`;
 }
 
+const OG_IMAGE_PATTERN = /<meta[^>]+property="og:image"[^>]+content="([^"]+)"/;
+
+/**
+ * ดึงรูปปกจากหน้าสินค้า SNKRDUNK ตรง ๆ ด้วยเลขสินค้า — ใช้ตอนแอดมินวางลิงก์
+ * ต้นทางเองโดยไม่ได้ผ่านช่องค้นหา (ซึ่งได้ thumbnail มาจากผลค้นหาอยู่แล้ว)
+ * คืน null ถ้าเปิดหน้าไม่ได้หรือหาแท็ก og:image ไม่เจอ
+ */
+export async function fetchSnkrdunkThumbnail(productId: string): Promise<string | null> {
+  try {
+    const res = await fetch(`https://snkrdunk.com/en/trading-cards/${encodeURIComponent(productId)}`, {
+      headers: { accept: "text/html" },
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+
+    const html = await res.text();
+    return html.match(OG_IMAGE_PATTERN)?.[1] ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /** ใช้เมื่อดึงอัตราแลกเปลี่ยนสดไม่ได้ — ตัวเลขคร่าว ๆ ดีกว่าไม่มีเลย */
 const FALLBACK_RATES_TO_THB: Record<string, number> = {
   THB: 1,

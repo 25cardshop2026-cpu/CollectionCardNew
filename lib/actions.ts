@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { checkImage, deleteCardImage, saveCardImage } from "./images";
+import { checkImage, deleteCardImage, saveCardImage, saveCardImageFromUrl } from "./images";
 import {
   createCard,
   createSet,
@@ -13,6 +13,7 @@ import {
   setFeaturedCards,
   updateCard,
 } from "./repo";
+import { fetchSnkrdunkThumbnail } from "./snkrdunk";
 import { VARIANT_LABEL, type Language, type VariantType } from "./types";
 
 export interface FormState {
@@ -90,6 +91,17 @@ export async function updateCardAction(
   });
 
   if (!result.ok) return { error: result.error };
+
+  // วางลิงก์ต้นทางตรง ๆ (ไม่ผ่านช่องค้นหา) ก็ได้รูปให้เหมือนกัน — ดึงเฉพาะใบที่
+  // ยังไม่มีรูปเลย เพื่อไม่ทับรูปที่แอดมินอัปโหลดเองไว้แล้ว ล้มเหลวได้โดยไม่ทำให้
+  // การบันทึกช่องอื่นพัง เพราะเป็นแค่ของแถม ไม่ใช่สิ่งที่ผู้ใช้ตั้งใจกดบันทึก
+  if (!result.value.imageUrl && result.value.snkrdunkCode) {
+    const thumbnailUrl = await fetchSnkrdunkThumbnail(result.value.snkrdunkCode);
+    if (thumbnailUrl) {
+      const savedUrl = await saveCardImageFromUrl(id, thumbnailUrl);
+      if (savedUrl) await setCardImage(id, savedUrl);
+    }
+  }
 
   revalidateEverything();
   redirect(
