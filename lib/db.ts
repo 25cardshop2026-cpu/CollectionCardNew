@@ -32,8 +32,14 @@ export function db(): SupabaseClient | null {
 
   // สร้างครั้งเดียวแล้วใช้ซ้ำ — ตัวไคลเอนต์ไม่มีสถานะของ request อยู่ข้างใน
   // (ปิด session ของ Auth ไว้ เพราะเราไม่ได้ใช้ Supabase Auth)
+  //
+  // ต้องยัด cache: "no-store" เข้าไปเองทุกคำขอ เพราะ supabase-js เรียก fetch()
+  // ธรรมดาข้างใน ซึ่ง Next.js/Vercel แอบแคชให้โดยไม่บอก ไม่งั้นอ่านค่าที่เพิ่ง
+  // เขียนไปหมาด ๆ กลับมาแล้วได้ของเก่าคืนมา (เจอจริงตอนผูกลิงก์การ์ดเป็นล็อต —
+  // เขียนสำเร็จทุกใบแต่หน้าแดชบอร์ดอ่านไม่เห็นสักใบ)
   client ??= createClient(settings.url, settings.key, {
     auth: { persistSession: false, autoRefreshToken: false },
+    global: { fetch: (input, init) => fetch(input, { ...init, cache: "no-store" }) },
   });
 
   return client;
