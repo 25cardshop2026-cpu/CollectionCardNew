@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
-import { canPersist, listSnkrdunkSyncTargets, loadState, setPrice } from "@/lib/repo";
+import { canPersist, listSnkrdunkSyncTargets, loadState, markSnkrdunkChecked, setPrice } from "@/lib/repo";
 import { fetchSnkrdunkPrices } from "@/lib/snkrdunk";
 
 export const dynamic = "force-dynamic";
@@ -35,6 +35,7 @@ async function runSync(limit: number): Promise<SyncSummary> {
 
   let updated = 0;
   const errors: string[] = [];
+  const checkedAt = new Date().toISOString();
 
   for (const target of targets) {
     const nmPrice = nm.get(target.snkrdunkCode);
@@ -50,6 +51,10 @@ async function runSync(limit: number): Promise<SyncSummary> {
       if (result.ok) updated++;
       else errors.push(`${target.card.number} (${target.snkrdunkCode}) PSA10: ${result.error}`);
     }
+
+    // ปักว่าลองแล้ว ไม่ว่าจะได้ราคากลับมาหรือไม่ก็ตาม — กันใบที่ไม่มีคนลงขาย
+    // ค้างหัวคิวตลอดไปจนใบอื่นไม่ได้คิวสักที (ดูเหตุผลเต็มใน listSnkrdunkSyncTargets)
+    await markSnkrdunkChecked(target.card.id, checkedAt);
   }
 
   if (updated > 0) revalidatePath("/", "layout");

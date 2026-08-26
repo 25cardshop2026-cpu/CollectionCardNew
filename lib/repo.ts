@@ -568,19 +568,28 @@ export interface SnkrdunkSyncTarget {
  * นี่คือรายการที่ job ซิงก์ราคาอัตโนมัติจะไปดึงราคามาอัปเดตให้
  */
 export function listSnkrdunkSyncTargets(): SnkrdunkSyncTarget[] {
-  const targets: (SnkrdunkSyncTarget & { updatedAt: string })[] = [];
+  const targets: (SnkrdunkSyncTarget & { checkedAt: string })[] = [];
   for (const card of snap().cards) {
     const snkrdunkCode = card.snkrdunkCode?.trim();
     if (!snkrdunkCode) continue;
     const variant = getVariants(card.id)[0];
     if (!variant) continue;
-    // ไม่เคยซิงก์เลย = เก่าสุด (ต้องได้คิวก่อน) แทนด้วยค่าว่างซึ่งเรียงมาก่อนวันที่จริงเสมอ
-    const updatedAt = getChannelPrice(variant.id, "NM", "snkrdunk")?.updatedAt ?? "";
-    targets.push({ card, variantId: variant.id, snkrdunkCode, updatedAt });
+    // ไม่เคยลองซิงก์เลย = เก่าสุด (ต้องได้คิวก่อน) แทนด้วยค่าว่างซึ่งเรียงมาก่อนวันที่จริงเสมอ
+    // ใช้เวลา "ลองซิงก์ล่าสุด" ไม่ใช่เวลาที่ได้ราคาจริง เพราะใบที่ยังไม่มีคนลงขาย
+    // จะไม่เคยได้ราคาเลย ถ้าใช้เวลาบันทึกราคาเป็นตัวจัดคิวจะค้างหัวคิวตลอดไป
+    // จนใบอื่นไม่ได้คิวสักที
+    const checkedAt = card.snkrdunkCheckedAt ?? "";
+    targets.push({ card, variantId: variant.id, snkrdunkCode, checkedAt });
   }
-  // ใบที่ไม่เคยซิงก์หรือซิงก์มานานสุดได้คิวก่อนเสมอ — ให้ทุกครั้งที่เรียก
+  // ใบที่ไม่เคยลองซิงก์หรือลองมานานสุดได้คิวก่อนเสมอ — ให้ทุกครั้งที่เรียก
   // (ปุ่มกดเอง หรือ cron รายวัน) คืบหน้าไปเรื่อย ๆ แม้ทำทั้งหมดในครั้งเดียวไม่ไหว
-  return targets.sort((a, b) => a.updatedAt.localeCompare(b.updatedAt));
+  return targets.sort((a, b) => a.checkedAt.localeCompare(b.checkedAt));
+}
+
+/** ปักเวลาที่เพิ่งลองซิงก์ราคาให้การ์ดใบนี้ ไม่ว่าจะได้ราคากลับมาหรือไม่ก็ตาม
+ * ใช้จัดคิว listSnkrdunkSyncTargets เท่านั้น ไม่ใช่ราคา จึงไม่ต้องเก็บประวัติ */
+export async function markSnkrdunkChecked(cardId: string, checkedAt: string): Promise<void> {
+  applied(await catalogStore.editCard(cardId, { snkrdunkCheckedAt: checkedAt }));
 }
 
 export interface AdminStats {
