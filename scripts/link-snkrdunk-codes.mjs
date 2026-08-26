@@ -10,7 +10,7 @@
 //
 // รัน: node scripts/link-snkrdunk-codes.mjs [--limit=N] [--dry-run]
 
-const BASE_URL = "https://collection-card-five.vercel.app";
+const BASE_URL = "https://collection-card-three.vercel.app";
 const DELAY_MS = 1200;
 const MAX_RETRIES = 3;
 const COOLDOWN_AFTER_CONSECUTIVE_FAILS = 3;
