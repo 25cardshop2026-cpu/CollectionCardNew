@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
-import { canPersist, loadState, updateCard } from "@/lib/repo";
+import { canPersist, loadState, setCardImage, updateCard } from "@/lib/repo";
+import { saveCardImageFromUrl } from "@/lib/images";
+import { fetchSnkrdunkThumbnail } from "@/lib/snkrdunk";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +41,16 @@ export async function POST(request: Request) {
   if (!result.ok) {
     const notFound = result.error.includes("ไม่พบ");
     return NextResponse.json({ error: result.error }, { status: notFound ? 404 : 400 });
+  }
+
+  // เช่นเดียวกับหน้าแดชบอร์ด — ใบที่ยังไม่มีรูปเลยและผูกเลขสินค้าได้จากลิงก์นี้
+  // ก็ดึงรูปปกมาเก็บให้เลย เป็นของแถม ล้มเหลวได้โดยไม่ทำให้ผูกลิงก์พัง
+  if (!result.value.imageUrl && result.value.snkrdunkCode) {
+    const thumbnailUrl = await fetchSnkrdunkThumbnail(result.value.snkrdunkCode);
+    if (thumbnailUrl) {
+      const savedUrl = await saveCardImageFromUrl(cardId, thumbnailUrl);
+      if (savedUrl) await setCardImage(cardId, savedUrl);
+    }
   }
 
   revalidatePath("/", "layout");

@@ -875,6 +875,14 @@ export async function updateCard(
     const sourceUrl = cleanSourceUrl(patch.sourceUrl);
     if (!sourceUrl.ok) return sourceUrl;
     clean.sourceUrl = sourceUrl.value;
+
+    // ลิงก์ต้นทางที่วางไว้ดันเป็นหน้าสินค้า SNKRDUNK อยู่แล้ว ก็แกะเลขมาผูกให้เลย
+    // ไม่ต้องให้กรอกซ้ำอีกช่อง — ใช้ตอนผู้เรียกไม่ได้ส่งช่องเลขสินค้ามาด้วยเลย
+    // (เช่น API ผูกลิงก์อย่างเดียว) เว้นแต่คำขอนี้ตั้งใจแก้ช่องเลขสินค้าเองด้วย
+    if (patch.snkrdunkCode === undefined) {
+      const derived = extractSnkrdunkCode(sourceUrl.value);
+      if (derived) clean.snkrdunkCode = derived;
+    }
   }
   // ลบทิ้งได้เหมือนลิงก์ต้นทาง — ว่าง = เอาใบนี้ออกจากรายการที่ซิงก์ราคาอัตโนมัติ
   // รับได้ทั้งตัวเลขล้วนหรือวาง URL เต็ม ๆ มา เหมือนช่องลิงก์ต้นทาง
