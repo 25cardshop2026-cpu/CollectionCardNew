@@ -25,3 +25,5 @@ data/overrides.json
 data/users.json
 data/portfolios/
 data/password-resets.json
+
+.vercel
