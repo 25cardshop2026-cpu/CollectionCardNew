@@ -7,7 +7,7 @@ import { cardName, setName, setNameAlt } from "@/lib/display";
 import { formatDate } from "@/lib/format";
 import { getDictionary } from "@/lib/i18n";
 import { isLocale, localePath } from "@/lib/i18n/config";
-import { getChannelPrice, getGame, getSetBySlug, listCardsInSet, loadState } from "@/lib/repo";
+import { getChannelPrice, getGame, hasAnyPrice, getSetBySlug, listCardsInSet, loadState } from "@/lib/repo";
 import type { PriceCurrent } from "@/lib/types";
 
 type SortKey = "number" | "price" | "change";
@@ -61,7 +61,8 @@ export default async function SetPage({
   const t = getDictionary(locale);
   const p = (path: string) => localePath(locale, path);
 
-  const all = listCardsInSet(set.code);
+  // ใบที่ยังไม่มีราคาเลยสักช่องไม่โชว์บนหน้าเว็บสาธารณะ — ให้แดชบอร์ดกรอกครบก่อน
+  const all = listCardsInSet(set.code).filter((row) => hasAnyPrice(row.card.id));
   const rarities = [...new Set(all.map((row) => row.card.rarity))];
   const sortKey: SortKey = sort === "price" || sort === "change" ? sort : "number";
 

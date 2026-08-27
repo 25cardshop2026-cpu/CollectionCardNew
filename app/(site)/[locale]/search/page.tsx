@@ -7,7 +7,7 @@ import { SearchBox } from "@/components/SearchBox";
 import { cardName, cardNameAlt } from "@/lib/display";
 import { getDictionary } from "@/lib/i18n";
 import { isLocale, localePath } from "@/lib/i18n/config";
-import { loadState, searchCards } from "@/lib/repo";
+import { hasAnyPrice, loadState, searchCards } from "@/lib/repo";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +40,8 @@ export default async function SearchPage({
   const p = (path: string) => localePath(locale, path);
 
   const query = (q ?? "").trim();
-  const results = searchCards(query);
+  // ใบที่ยังไม่มีราคาเลยสักช่องไม่โชว์บนหน้าเว็บสาธารณะ — ให้แดชบอร์ดกรอกครบก่อน
+  const results = searchCards(query).filter((row) => hasAnyPrice(row.card.id));
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-10 px-5 py-12 sm:px-8 sm:py-16">

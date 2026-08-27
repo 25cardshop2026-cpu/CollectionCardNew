@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { loadState, searchCards } from "@/lib/repo";
+import { hasAnyPrice, loadState, searchCards } from "@/lib/repo";
 import { VARIANT_LABEL } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -24,16 +24,19 @@ export async function GET(request: Request) {
 
   await loadState();
 
-  const results = searchCards(query, LIMIT).map(({ card, set, headline }) => ({
-    slug: card.slug,
-    number: card.number,
-    nameTh: card.nameTh,
-    nameEn: card.nameEn,
-    setCode: set.code,
-    rarity: card.rarity,
-    variantLabel: VARIANT_LABEL[card.variantType],
-    priceThb: headline?.priceThb ?? null,
-  }));
+  // ใบที่ยังไม่มีราคาเลยสักช่องไม่โชว์บนหน้าเว็บสาธารณะ — ให้แดชบอร์ดกรอกครบก่อน
+  const results = searchCards(query, LIMIT)
+    .filter((row) => hasAnyPrice(row.card.id))
+    .map(({ card, set, headline }) => ({
+      slug: card.slug,
+      number: card.number,
+      nameTh: card.nameTh,
+      nameEn: card.nameEn,
+      setCode: set.code,
+      rarity: card.rarity,
+      variantLabel: VARIANT_LABEL[card.variantType],
+      priceThb: headline?.priceThb ?? null,
+    }));
 
   return NextResponse.json({ results });
 }

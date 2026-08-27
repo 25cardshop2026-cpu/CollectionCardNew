@@ -18,6 +18,7 @@ import {
   getPriceTable,
   getSet,
   getVariants,
+  hasAnyPrice,
   listCardsInSet,
   loadState,
 } from "@/lib/repo";
@@ -97,8 +98,9 @@ export default async function CardPage({
   const headlinePrice = headlineVariant ? getCurrentPrice(headlineVariant.id, "NM") : null;
   const psaPrice = headlineVariant ? getCurrentPrice(headlineVariant.id, "PSA10") : null;
   const history = headlineVariant ? getHistory(headlineVariant.id) : [];
+  // ใบที่ยังไม่มีราคาเลยสักช่องไม่โชว์บนหน้าเว็บสาธารณะ — ให้แดชบอร์ดกรอกครบก่อน
   const siblings = listCardsInSet(set.code)
-    .filter((row) => row.card.id !== card.id)
+    .filter((row) => row.card.id !== card.id && hasAnyPrice(row.card.id))
     .slice(0, 6);
 
   const jsonLd = {

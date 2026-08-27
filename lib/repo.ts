@@ -288,6 +288,17 @@ export function getVariants(cardId: string): Variant[] {
   return snap().variantsByCard.get(cardId) ?? [];
 }
 
+/** การ์ดใบนี้มีราคาบันทึกไว้อย่างน้อยหนึ่งจุดไหม ไม่ว่าจะช่องทางไหน (ตลาดหลัก
+ * eBay SNKRDUNK) สภาพไหน หรือ variant ไหนของใบนี้ก็นับ — ใช้กรองใบที่ยังไม่มี
+ * ข้อมูลราคาเลยสักช่องออกจากหน้าเว็บสาธารณะ ไม่ให้คนเห็นใบที่ขึ้น "—" รัว ๆ
+ * ใช้เฉพาะฝั่งหน้าเว็บสาธารณะเท่านั้น — แดชบอร์ดกับสคริปต์ยังต้องเห็นการ์ดทุกใบ
+ * รวมใบที่ยังไม่มีราคาด้วย ถึงจะไปกรอกราคา/ผูกลิงก์ให้ครบทีหลังได้ */
+export function hasAnyPrice(cardId: string): boolean {
+  return getVariants(cardId).some(
+    (variant) => (snap().recordedByVariant.get(variant.id) ?? []).length > 0,
+  );
+}
+
 export function getCardBySlug(slug: string): Card | undefined {
   return snap().cardBySlug.get(slug);
 }
@@ -334,10 +345,16 @@ export function listFeaturedCards(): CardWithPrice[] {
   if (pinned.length >= FEATURED_SLOTS) return pinned.slice(0, FEATURED_SLOTS);
 
   const used = new Set(pinned.map((row) => row.card.id));
-  const rest = listAllSets()
+  const candidates = listAllSets()
     .flatMap((set) => listCardsInSet(set.code))
-    .filter((row) => !used.has(row.card.id))
-    .sort((a, b) => (b.headline?.priceThb ?? 0) - (a.headline?.priceThb ?? 0));
+    .filter((row) => !used.has(row.card.id));
+
+  // เลือกจากใบที่มีราคาแล้วก่อนเสมอ — ตกกลับไปใช้ใบไหนก็ได้เฉพาะตอนทั้งแคตตาล็อก
+  // ยังไม่มีราคาเลยสักใบจริง ๆ (ดูเหตุผลใน docblock ด้านบน)
+  const priced = candidates.filter((row) => hasAnyPrice(row.card.id));
+  const rest = (priced.length > 0 ? priced : candidates).sort(
+    (a, b) => (b.headline?.priceThb ?? 0) - (a.headline?.priceThb ?? 0),
+  );
 
   return [...pinned, ...rest].slice(0, FEATURED_SLOTS);
 }
