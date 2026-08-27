@@ -213,7 +213,7 @@ async function selectAll<T>(
   }
 }
 
-async function loadFromSupabase(): Promise<LoadedOverrides> {
+async function fetchFromSupabase(): Promise<LoadedOverrides> {
   const client = db();
   if (!client) return { overrides: EMPTY_OVERRIDES, key: "empty" };
 
@@ -309,6 +309,25 @@ async function loadFromSupabase(): Promise<LoadedOverrides> {
 }
 
 /**
+ * แคชผลลัพธ์ไว้สั้น ๆ กันโหลด 8 ตาราง (บางตารางวนหลายหน้า) ใหม่ทุกครั้งที่เปิด
+ * หน้าเว็บ — แคตตาล็อกที่โตขึ้นหลังผูกลิงก์เป็นล็อต (card_edits 2,600+ แถว,
+ * price_points 1,200+ แถว) ทำให้สลับหน้าไปมารู้สึกช้าลงชัดเจน เพราะโหลดทั้งก้อน
+ * ใหม่ทุกคลิก แคชนี้ใช้แค่ฝั่งอ่าน — ฝั่งเขียน (commitSupabase) ข้ามแคชเสมอ
+ * เพื่อให้ผลการเขียนเห็นได้ทันที แล้วอัปเดตแคชด้วยผลสดนั้นให้คนอื่นได้ใช้ต่อ
+ */
+const READ_CACHE_MS = 5000;
+let readCache: { result: LoadedOverrides; fetchedAt: number } | null = null;
+
+async function loadFromSupabase(): Promise<LoadedOverrides> {
+  if (readCache && Date.now() - readCache.fetchedAt < READ_CACHE_MS) {
+    return readCache.result;
+  }
+  const result = await fetchFromSupabase();
+  readCache = { result, fetchedAt: Date.now() };
+  return result;
+}
+
+/**
  * กุญแจบอกรุ่นของข้อมูล ใช้ให้ repo รู้ว่าต้องสร้างดัชนีใหม่ไหม
  *
  * ประกอบจากค่าที่ "ต้องเปลี่ยน" เมื่อมีการเขียนเกิดขึ้นจริงเท่านั้น:
@@ -341,7 +360,10 @@ function keyOf(
 async function commitSupabase(work: () => Promise<unknown>): Promise<WriteResult> {
   try {
     await work();
-    return await loadFromSupabase();
+    // ข้ามแคชเสมอตอนเพิ่งเขียน ต้องเห็นผลจริงทันที ไม่ใช่ของที่แคชไว้ก่อนหน้า
+    const result = await fetchFromSupabase();
+    readCache = { result, fetchedAt: Date.now() };
+    return result;
   } catch (err) {
     console.error("commitSupabase ล้มเหลว:", err);
     return null;
